@@ -43,9 +43,14 @@ def _find(env_name: str, marker: str, local: Path) -> str:
     if (local / marker).exists() or not os.path.isdir("/kaggle/input"):
         return str(local)
     level = ["/kaggle/input"]
-    for _ in range(4):
-        level = [os.path.join(d, n) for d in level if os.path.isdir(d) for n in sorted(os.listdir(d))
-                 if os.path.isdir(os.path.join(d, n))]
+    for _ in range(6):
+        nxt = []
+        for d in level:
+            names = sorted(os.listdir(d))
+            if len(names) > 64:          # a folder of data files, not a place to look for dataset roots
+                continue
+            nxt += [os.path.join(d, n) for n in names if os.path.isdir(os.path.join(d, n))]
+        level = nxt
         for d in level:
             if os.path.exists(os.path.join(d, marker)):
                 return d
