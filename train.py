@@ -40,6 +40,7 @@ DEFAULTS = {
     "batch_size": 64, "num_workers": 8, "amp": True, "ema_decay": 0.9995, "warmup_steps": 125,
     "grad_clip": 1.0, "weight_decay": 1e-4, "log_interval": 100, "val_interval": 1000, "seed": 1337,
     "aug": "raft",           # "raft" | "december" (the recipe of the December training)
+    "data_parallel": True,   # use all GPUs through nn.DataParallel
     "val_limit": 0,          # 0 = whole validation sets; N = first N pairs of each (smoke tests)
     "model": {},             # overrides of ModelConfig
     "stages": [],            # each: name, train [datasets], val [[dataset, split], ...], steps, lr_max, lr_min
@@ -241,7 +242,7 @@ def main():
     mcfg = ModelConfig(**cfg["model"])
     size_hw = mcfg.image_size
     model = EdgeFlowNet(mcfg).to(device)
-    if torch.cuda.device_count() > 1:
+    if torch.cuda.device_count() > 1 and cfg["data_parallel"]:
         model = nn.DataParallel(model)
     eval_model = EdgeFlowNet(mcfg).to(device)
     from data import DATA
@@ -338,8 +339,12 @@ def main():
 
         model.train()
         t_log, n_log = time.time(), 0
+        t_data = t_compute = 0.0       # seconds spent waiting for batches / computing, since the last log line
+        t_mark = time.time()
         while step < steps and not stopped_early:
             for img0, img1, flow_gt, valid in loader:
+                t_data += time.time() - t_mark
+                t_mark = time.time()
                 img0, img1 = img0.to(device, non_blocking=True), img1.to(device, non_blocking=True)
                 flow_gt, valid = flow_gt.to(device, non_blocking=True), valid.to(device, non_blocking=True)
                 if cfg["aug"] == "raft":
@@ -360,13 +365,18 @@ def main():
                 ema.update(unwrap(model))
                 step += 1
                 n_log += 1
+                if device.type == "cuda" and step % cfg["log_interval"] == 0:
+                    torch.cuda.synchronize()
+                t_compute += time.time() - t_mark
+                t_mark = time.time()
 
                 if step % cfg["log_interval"] == 0:
                     rate = n_log * cfg["batch_size"] / (time.time() - t_log)
                     t_log, n_log = time.time(), 0
                     print(f"[{stage['name']}] step {step}/{steps} | lr {lr:.2e} | loss {stats['loss']:.4f} | "
-                          f"epe {stats['epe']:.3f} | {rate:.1f} pairs/s | {(time.time() - started) / 3600:.2f} h",
-                          flush=True)
+                          f"epe {stats['epe']:.3f} | {rate:.1f} pairs/s (data {t_data:.0f} s, compute {t_compute:.0f} s) | "
+                          f"{(time.time() - started) / 3600:.2f} h", flush=True)
+                    t_data = t_compute = 0.0
                     if logger:
                         gstep = sum(int(s["steps"]) for s in cfg["stages"][:stage_idx]) + step
                         logger.report_scalar("train", "loss", stats["loss"], gstep)
@@ -377,6 +387,7 @@ def main():
                     validate()
                     save_state()
                     t_log, n_log = time.time(), 0
+                    t_mark = time.time()
                 out_of_time = (args.max_hours and (time.time() - started) / 3600 >= args.max_hours) or \
                               (deadline and time.time() >= deadline)
                 if out_of_time and step < steps:
