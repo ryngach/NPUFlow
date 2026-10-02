@@ -59,7 +59,7 @@ def _find(env_name: str, marker: str, local: Path) -> str:
 
 DATA = {
     "chairs": _find("NPUFLOW_CHAIRS", "00001_img1.ppm", ROOT / "datasets" / "FlyingChairs_release" / "data"),
-    "things": os.environ.get("NPUFLOW_THINGS", str(ROOT / "datasets" / "FlyingThings3D")),
+    "things": _find("NPUFLOW_THINGS", "things_00_flow.npy", ROOT / "datasets" / "things_compact"),
     "sintel": _find("NPUFLOW_SINTEL", "training/clean/alley_1/frame_0001.png", ROOT / "datasets" / "MPI-Sintel-complete"),
     "kitti": _find("NPUFLOW_KITTI", "training/flow_occ/000000_10.png", ROOT / "datasets" / "data_scene_flow"),
 }
@@ -495,10 +495,50 @@ class Kitti2015(FlowPairs):
 
 
 class FlyingThings3D(FlowPairs):
+    """Compact copy of the FlyingThings3D subset written by kaggle/build_things.py.
+
+    Frames and flow are stored at the model height (256x456), flow as float16 in a
+    memory-mapped array per shard, frames as JPEG bytes in one file per shard, so a
+    sample costs three reads from a few large files instead of three file opens.
+    """
+
     def __init__(self, split, size_hw, augment):
         super().__init__(size_hw, augment)
-        raise NotImplementedError(
-            "FlyingThings3D loader is not written yet: the layout of the Kaggle copy has to be checked first.")
+        root = Path(DATA["things"])
+        flows = sorted(root.glob("things_*_flow.npy"))
+        if not flows:
+            raise FileNotFoundError(f"compact FlyingThings3D not found: {root} (set NPUFLOW_THINGS)")
+        self.shards = []
+        for k, flow_path in enumerate(flows):
+            base = str(flow_path)[:-len("_flow.npy")]
+            index = np.load(base + "_index.npy")
+            self.shards.append((str(flow_path), base + "_img.bin", index))
+            self.samples += [(k, i) for i in range(len(index))]
+        self.samples = [self.samples[i] for i in _split_indices(len(self.samples), split)]
+        self._open = {}          # per-process handles, opened on first use (workers must not share them)
+
+    def _handles(self, k):
+        if k not in self._open:
+            flow_path, bin_path, _ = self.shards[k]
+            self._open[k] = (np.load(flow_path, mmap_mode="r"), open(bin_path, "rb"))
+        return self._open[k]
+
+    def load(self, index):
+        k, i = self.samples[index]
+        flows, images = self._handles(k)
+        frames = []
+        for offset, length in self.shards[k][2][i]:
+            images.seek(int(offset))
+            bgr = cv2.imdecode(np.frombuffer(images.read(int(length)), np.uint8), cv2.IMREAD_COLOR)
+            frames.append(np.ascontiguousarray(bgr[..., ::-1]))
+        flow = np.ascontiguousarray(np.asarray(flows[i], dtype=np.float32).transpose(2, 0, 1))
+        valid = np.ones(flow.shape[1:], dtype=bool)
+        return frames[0], frames[1], flow, valid, valid
+
+    def __getstate__(self):      # open files and memory maps do not survive pickling into workers
+        state = dict(self.__dict__)
+        state["_open"] = {}
+        return state
 
 
 def make_dataset(name: str, split: str, size_hw, augment: bool, aug_recipe: str = "raft") -> FlowPairs:
