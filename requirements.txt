@@ -1,0 +1,27 @@
+# EdgeFlowNet Requirements
+# Python 3.9+
+
+# Core dependencies
+torch==2.7.0
+torchvision==0.22.0
+
+# Data processing
+numpy==1.26.4
+opencv-python==4.11.0.86
+imageio==2.37.0
+
+# Training utilities
+tqdm==4.67.1
+
+# Optional: For ONNX export and conversion
+onnx==1.18.0
+onnxruntime==1.21.1
+
+# Optional: Visualization
+matplotlib==3.10.3
+
+# Optional: For TPU-MLIR conversion (requires separate TPU-MLIR SDK installation)
+# tpu_mlir  # Install from TPU-MLIR SDK
+
+# Optional: For MaixCAM deployment
+# maix>=4.0.0  # Install on MaixCAM device

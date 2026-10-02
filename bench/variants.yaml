@@ -1,0 +1,46 @@
+# Architecture variants for on-device speed screening (no training needed:
+# TPU time does not depend on weight values).
+# Each entry = overrides of the default ModelConfig in model.py.
+# B0 is the current network; every S* differs from it by one change.
+
+B0: {}
+
+S1_no_full_refine: {full_refine: none}          # cost of the 256x320 refine block
+S3_pixelshuffle:   {full_refine: pixelshuffle}  # residual predicted at 1/4, unfolded to full res
+S4_relu:           {act: relu}                  # ReLU fuses into the preceding conv
+S5_no_se:          {use_se: false}              # SE blocks: BF16 Mul + casts
+S6_no_pos_enc:     {use_pos_enc: false}         # positional Concat runs in BF16 at 4 scales
+S7_no_l2norm:      {use_l2norm: false}          # LUTs (sqrt, reciprocal) before correlations
+S8_iters1:         {iters32: 1, iters16: 1}     # one coarse update pass instead of two
+S9a_corr16_r4:     {r16: 4}                     # 81 shifts instead of 169
+S9b_corr16_1d:     {corr16: 1d}                 # 26 shifts: horizontal + vertical only
+
+# Combined variants: do the single-change gains from session1 add up?
+C1_1d_ps:           {corr16: 1d, full_refine: pixelshuffle}
+C2_1d_ps_nopos:     {corr16: 1d, full_refine: pixelshuffle, use_pos_enc: false}
+C3_1d_ps_nopos_relu: {corr16: 1d, full_refine: pixelshuffle, use_pos_enc: false, act: relu}
+C4_lean_all:        {corr16: 1d, full_refine: pixelshuffle, use_pos_enc: false, act: relu,
+                     use_se: false, use_l2norm: false, iters32: 1, iters16: 1}
+C5_r4_ps_nopos_relu: {r16: 4, full_refine: pixelshuffle, use_pos_enc: false, act: relu}
+C6_1d_norefine_nopos_relu: {corr16: 1d, full_refine: none, use_pos_enc: false, act: relu}
+
+# PLAN.md section 9: replacements for warping / lookup at s8, on top of C3.
+# V1 = dual-1D global correlation + soft-argmax, V2 = separable kernel-prediction warp,
+# V3 = dilated local cost volume, A1 = plain dual-1D local correlation (corr8 from section 7).
+V1_global1d_sa:        {corr16: 1d, full_refine: pixelshuffle, use_pos_enc: false, act: relu,
+                        match8: global1d}
+V1b_global1d_sa_loc2:  {corr16: 1d, full_refine: pixelshuffle, use_pos_enc: false, act: relu,
+                        match8: global1d, match8_local_r: 2}
+V1c_global1d_sa_nof1:  {corr16: 1d, full_refine: pixelshuffle, use_pos_enc: false, act: relu,
+                        match8: global1d, refine8_f1: false}
+V1d_global1d_nosa:     {corr16: 1d, full_refine: pixelshuffle, use_pos_enc: false, act: relu,
+                        match8: global1d, match8_softargmax: false}
+V2_kpn_r4:             {corr16: 1d, full_refine: pixelshuffle, use_pos_enc: false, act: relu,
+                        warp8: kpn, kpn_r8: 4}
+V2b_kpn_r4_global1d:   {corr16: 1d, full_refine: pixelshuffle, use_pos_enc: false, act: relu,
+                        warp8: kpn, kpn_r8: 4, match8: global1d}
+V3_dcv_r2_d124:        {corr16: 1d, full_refine: pixelshuffle, use_pos_enc: false, act: relu,
+                        match8: dcv, r8: 2, dcv_dilations: [1, 2, 4]}
+A1_local1d_r4:         {corr16: 1d, full_refine: pixelshuffle, use_pos_enc: false, act: relu,
+                        match8: local1d, r8: 4}
+V1_B0_global1d_sa:     {match8: global1d}   # cost of B1 alone on top of B0

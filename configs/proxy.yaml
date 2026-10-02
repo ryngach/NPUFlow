@@ -1,0 +1,19 @@
+# Proxy protocol for ranking architecture candidates (PLAN.md, decision Q6):
+# FlyingChairs 30k -> FlyingThings3D 30k, evaluated on ALL of Sintel train and
+# KITTI-2015 train, which the model never sees (the "C+T" protocol of the literature).
+batch_size: 64
+num_workers: 4
+val_interval: 5000
+stages:
+  - name: chairs
+    train: [chairs]
+    val: [[sintel-clean, all], [sintel-final, all], [kitti15, all]]
+    steps: 30000
+    lr_max: 2.0e-3
+    lr_min: 2.0e-4
+  - name: things
+    train: [things]
+    val: [[sintel-clean, all], [sintel-final, all], [kitti15, all]]
+    steps: 30000
+    lr_max: 4.0e-4
+    lr_min: 4.0e-5

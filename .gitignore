@@ -1,0 +1,18 @@
+# local links to data, checkpoints and environment (not part of the repository)
+/datasets
+/train_out_v1
+/.venv
+/runs/
+bench/work/
+bench/calib/
+__pycache__/
+*.pyc
+*.pth
+*.pt
+*.onnx
+*.cvimodel
+*.npz
+*.npy
+clearml.conf
+kaggle.json
+access_token
