@@ -1,0 +1,17 @@
+{
+  "id": "ryngach/npuflow-agent",
+  "title": "npuflow-agent",
+  "code_file": "npuflow-agent.ipynb",
+  "language": "python",
+  "kernel_type": "notebook",
+  "is_private": true,
+  "enable_gpu": true,
+  "enable_internet": true,
+  "dataset_sources": [
+    "craljimenez/flyingchairs",
+    "artemmmtry/mpi-sintel-dataset",
+    "welkinfeng/kitti2015scene-flow-evaluation-2015"
+  ],
+  "competition_sources": [],
+  "kernel_sources": []
+}

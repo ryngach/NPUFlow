@@ -1,0 +1,45 @@
+#!/usr/bin/env python3
+"""Queue a training run for the Kaggle agent, or put a stopped run back in the queue.
+
+    python kaggle/submit.py --name C3-probe --config configs/chairs_probe.yaml --variant C3_1d_ps_nopos_relu
+    python kaggle/submit.py --resume <task id>
+    kaggle kernels push -p kaggle        # starts the agent notebook (it also runs on its own from the Kaggle UI)
+
+The agent clones the repository at the given branch, so push your commits first.
+"""
+import argparse
+
+from clearml import Task
+
+REPO = "https://github.com/ryngach/NPUFlow.git"
+
+
+def main():
+    ap = argparse.ArgumentParser(description=__doc__, formatter_class=argparse.RawDescriptionHelpFormatter)
+    ap.add_argument("--name")
+    ap.add_argument("--config", default="configs/proxy.yaml")
+    ap.add_argument("--variant", default="")
+    ap.add_argument("--set", action="append", default=[])
+    ap.add_argument("--branch", default="main")
+    ap.add_argument("--queue", default="kaggle")
+    ap.add_argument("--project", default="NPUFlow/train")
+    ap.add_argument("--resume", metavar="TASK_ID", help="re-enqueue a stopped task; it continues from its saved state")
+    args = ap.parse_args()
+
+    if args.resume:
+        task = Task.get_task(task_id=args.resume)
+    else:
+        if not args.name:
+            ap.error("--name is required for a new run")
+        task = Task.create(project_name=args.project, task_name=args.name, repo=REPO, branch=args.branch,
+                           script="train.py", add_task_init_call=False)
+        task.set_parameters({"Args/config": args.config, "Args/name": args.name, "Args/variant": args.variant,
+                             "Args/set": repr(args.set), "Args/project": args.project})
+        if args.variant:
+            task.add_tags([args.variant])
+    Task.enqueue(task, queue_name=args.queue)
+    print(f"task {task.id} ({task.name}) is in queue '{args.queue}': {task.get_output_log_web_page()}")
+
+
+if __name__ == "__main__":
+    main()

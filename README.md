@@ -18,6 +18,7 @@ Lightweight optical flow network for low-cost NPUs (developed on MaixCAM, Sophgo
 | `bench/bf16_blocks.py`, `stage_diag.py`, `concat_levels.py` | where accuracy is lost, what each stage does |
 | `docker/tpumlir.Dockerfile` | pinned TPU-MLIR toolchain |
 | `results/` | append-only experiment records |
+| `kaggle/` | agent notebook for Kaggle (`npuflow-agent.ipynb`) and `submit.py` to queue runs |
 
 ## Training
 

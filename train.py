@@ -182,7 +182,7 @@ def load_config(args):
     return cfg
 
 
-def main():
+def build_parser():
     ap = argparse.ArgumentParser(description=__doc__, formatter_class=argparse.RawDescriptionHelpFormatter)
     ap.add_argument("--config", required=True)
     ap.add_argument("--name", required=True, help="run name; runs/<name>/ holds state and weights")
@@ -191,14 +191,38 @@ def main():
     ap.add_argument("--max-hours", type=float, default=0, help="stop cleanly after this many hours (0 = no limit)")
     ap.add_argument("--clearml", action="store_true", help="log to ClearML and keep state as task artifacts")
     ap.add_argument("--project", default="NPUFlow/train")
-    args = ap.parse_args()
+    return ap
 
-    cfg = load_config(args)
+
+def get_args_and_task():
+    """Command line when run by hand; the task's stored arguments when started by a ClearML agent."""
+    ap = build_parser()
+    if os.environ.get("CLEARML_TASK_ID"):
+        from clearml import Task
+        task = Task.init(auto_connect_frameworks=False, auto_connect_arg_parser=False)
+        stored = task.get_parameters_as_dict().get("Args", {})
+        argv = []
+        for key in ("config", "name", "variant", "max_hours", "project"):
+            if stored.get(key) not in (None, "", "None"):
+                argv += [f"--{key.replace('_', '-')}", str(stored[key])]
+        for item in yaml.safe_load(stored.get("set") or "[]") or []:
+            argv += ["--set", item]
+        args = ap.parse_args(argv)
+        args.clearml = True
+        return args, task
+    args = ap.parse_args()
     task = None
     if args.clearml:
         from clearml import Task
         task = Task.init(project_name=args.project, task_name=args.name, continue_last_task=True,
                          auto_connect_frameworks=False)
+    return args, task
+
+
+def main():
+    args, task = get_args_and_task()
+    cfg = load_config(args)
+    if task is not None:
         cfg = plain(task.connect_configuration(cfg, name="train"))   # an agent run takes the stored config
     logger = task.get_logger() if task else None
 
@@ -235,6 +259,7 @@ def main():
         print(f"[resume] stage {state['stage']} step {state['step']}")
 
     started = time.time()
+    deadline = float(os.environ.get("NPUFLOW_DEADLINE", 0))   # absolute time set by the Kaggle agent notebook
     stopped_early = False
     history = state["history"] if state else []
 
@@ -350,7 +375,9 @@ def main():
                     validate()
                     save_state()
                     t_log, n_log = time.time(), 0
-                if args.max_hours and (time.time() - started) / 3600 >= args.max_hours and step < steps:
+                out_of_time = (args.max_hours and (time.time() - started) / 3600 >= args.max_hours) or \
+                              (deadline and time.time() >= deadline)
+                if out_of_time and step < steps:
                     save_state()
                     stopped_early = True
                 if step >= steps or stopped_early:
@@ -368,10 +395,10 @@ def main():
 
     (out_dir / "history.yaml").write_text(yaml.safe_dump(history, sort_keys=False))
     if stopped_early:
-        print(f"time budget of {args.max_hours} h reached; state saved, start again with the same --name to continue")
+        print("time budget reached; state saved, start again with the same --name (or re-enqueue the task) to continue")
         if task is not None:
             task.mark_stopped(status_message="time budget reached; re-enqueue to continue")
-        sys.exit(3)
+        return
     print("training finished")
 
 

@@ -1,0 +1,13 @@
+# Short real run on Kaggle: FlyingChairs only, to measure end-to-end speed (data loading
+# included) and check the agent, logging and resume before spending hours.
+batch_size: 64
+num_workers: 4
+val_interval: 1000
+val_limit: 60
+stages:
+  - name: chairs
+    train: [chairs]
+    val: [[sintel-clean, all], [sintel-final, all], [kitti15, all]]
+    steps: 2000
+    lr_max: 2.0e-3
+    lr_min: 2.0e-4
