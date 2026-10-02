@@ -18,21 +18,6 @@ START = float(os.environ.get("NPUFLOW_SESSION_START", time.time()))
 INPUT = "/kaggle/input"
 
 
-def find_root(relative_marker):
-    """Dataset root: the directory under /kaggle/input (up to two levels deep) that contains the marker.
-
-    A recursive glob over the mounted datasets takes many minutes, so only a few fixed depths are tried.
-    """
-    if not os.path.isdir(INPUT):
-        return None
-    level1 = [os.path.join(INPUT, d) for d in sorted(os.listdir(INPUT))]
-    level2 = [os.path.join(a, d) for a in level1 if os.path.isdir(a) for d in sorted(os.listdir(a))]
-    for base in level1 + level2:
-        if os.path.exists(os.path.join(base, relative_marker)):
-            return base
-    return None
-
-
 def main():
     os.environ.setdefault("CLEARML_API_HOST", "https://api.clear.ml")
     os.environ.setdefault("CLEARML_WEB_HOST", "https://app.clear.ml")
@@ -41,13 +26,8 @@ def main():
     print(subprocess.run(["nvidia-smi", "--query-gpu=name,memory.total", "--format=csv,noheader"],
                          capture_output=True, text=True).stdout.strip() or "no GPU", "| CPU cores:", os.cpu_count())
 
-    roots = {"NPUFLOW_CHAIRS": find_root("00001_img1.ppm"),
-             "NPUFLOW_SINTEL": find_root("training/clean/alley_1/frame_0001.png"),
-             "NPUFLOW_KITTI": find_root("training/flow_occ/000000_10.png")}
-    for key, value in roots.items():
-        if value:
-            os.environ[key] = value
-        print(key, "=", value or "NOT FOUND")
+    # dataset locations are resolved by data.py itself (it searches /kaggle/input)
+    print("inputs:", sorted(os.listdir(INPUT)) if os.path.isdir(INPUT) else "none", flush=True)
 
     from clearml.backend_api import Session
     session = Session()

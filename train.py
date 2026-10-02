@@ -244,6 +244,8 @@ def main():
     if torch.cuda.device_count() > 1:
         model = nn.DataParallel(model)
     eval_model = EdgeFlowNet(mcfg).to(device)
+    from data import DATA
+    print("datasets:", DATA)
     print(f"run {cfg['name']} | device {device} x{max(1, torch.cuda.device_count())} | "
           f"params {unwrap(model).count_params() / 1e6:.3f}M | model {cfg['model']}")
 

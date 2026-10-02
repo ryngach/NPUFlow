@@ -29,11 +29,34 @@ from torch.utils.data import Dataset
 from utils import read_flo, read_kitti_png_flow, resize_flow, resize_img, resize_mask_nearest
 
 ROOT = Path(__file__).resolve().parent
+
+
+def _find(env_name: str, marker: str, local: Path) -> str:
+    """Dataset directory: the environment variable, else the local copy, else a Kaggle input.
+
+    `marker` is a file path relative to the wanted directory. On Kaggle the datasets are mounted
+    under /kaggle/input/<name>/..., a few levels deep depending on how the archive was packed;
+    only fixed depths are tried, because a recursive search over the mounts takes minutes.
+    """
+    if os.environ.get(env_name):
+        return os.environ[env_name]
+    if (local / marker).exists() or not os.path.isdir("/kaggle/input"):
+        return str(local)
+    level = ["/kaggle/input"]
+    for _ in range(4):
+        level = [os.path.join(d, n) for d in level if os.path.isdir(d) for n in sorted(os.listdir(d))
+                 if os.path.isdir(os.path.join(d, n))]
+        for d in level:
+            if os.path.exists(os.path.join(d, marker)):
+                return d
+    return str(local)
+
+
 DATA = {
-    "chairs": os.environ.get("NPUFLOW_CHAIRS", str(ROOT / "datasets" / "FlyingChairs_release" / "data")),
+    "chairs": _find("NPUFLOW_CHAIRS", "00001_img1.ppm", ROOT / "datasets" / "FlyingChairs_release" / "data"),
     "things": os.environ.get("NPUFLOW_THINGS", str(ROOT / "datasets" / "FlyingThings3D")),
-    "sintel": os.environ.get("NPUFLOW_SINTEL", str(ROOT / "datasets" / "MPI-Sintel-complete")),
-    "kitti": os.environ.get("NPUFLOW_KITTI", str(ROOT / "datasets" / "data_scene_flow")),
+    "sintel": _find("NPUFLOW_SINTEL", "training/clean/alley_1/frame_0001.png", ROOT / "datasets" / "MPI-Sintel-complete"),
+    "kitti": _find("NPUFLOW_KITTI", "training/flow_occ/000000_10.png", ROOT / "datasets" / "data_scene_flow"),
 }
 
 # Sintel validation scenes for fine-tuning: whole scenes, so no frame of a validation
