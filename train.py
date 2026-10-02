@@ -40,7 +40,7 @@ DEFAULTS = {
     "batch_size": 64, "num_workers": 8, "amp": True, "ema_decay": 0.9995, "warmup_steps": 125,
     "grad_clip": 1.0, "weight_decay": 1e-4, "log_interval": 100, "val_interval": 1000, "seed": 1337,
     "aug": "raft",           # "raft" | "december" (the recipe of the December training)
-    "data_parallel": True,   # use all GPUs through nn.DataParallel
+    "data_parallel": False,  # nn.DataParallel over all GPUs; on Kaggle (4 CPU cores, 2x T4) it is 5x SLOWER
     "val_limit": 0,          # 0 = whole validation sets; N = first N pairs of each (smoke tests)
     "model": {},             # overrides of ModelConfig
     "stages": [],            # each: name, train [datasets], val [[dataset, split], ...], steps, lr_max, lr_min
