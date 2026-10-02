@@ -3,7 +3,7 @@
 
     python kaggle/submit.py --name C3-probe --config configs/chairs_probe.yaml --variant C3_1d_ps_nopos_relu
     python kaggle/submit.py --resume <task id>
-    kaggle kernels push -p kaggle        # starts the agent notebook (it also runs on its own from the Kaggle UI)
+    then start the agent notebook from the Kaggle editor (Save Version); API pushes have no access to secrets
 
 The agent clones the repository at the given branch, so push your commits first.
 """
