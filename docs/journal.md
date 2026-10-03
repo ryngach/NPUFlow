@@ -78,6 +78,6 @@ C3 — B0 з одновимірною кореляцією на s16, PixelShuffl
 - **Що зроблено:** `python kaggle/submit.py --name C3-chairs --config configs/chairs.yaml
   --variant C3_1d_ps_nopos_relu`. Конфіг: Chairs 30 000 кроків, батч 64, lr 2e-3 → 2e-4,
   валідація кожні 5 000 кроків на всьому Sintel train (clean, final) і KITTI-15 train.
-  Коміт і ID задачі ClearML — нижче.
+  Коміт `3ede691`, задача ClearML `0f75df6b82644704bc3138b7f5301d6f`, поставлена в чергу 2026-10-03.
 - **Результат:** очікується.
 - **Висновок:** —
