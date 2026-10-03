@@ -28,15 +28,15 @@
 | [C4_lean_all](#c4_lean_all) | `corr16: 1d`, `full_refine: pixelshuffle`, `use_pos_enc: False`, `act: relu`, `use_se: False`, `use_l2norm: False`, `iters32: 1`, `iters16: 1` | 0.453 | 10.18 | 10.63 |
 | [C5_r4_ps_nopos_relu](#c5_r4_ps_nopos_relu) | `r16: 4`, `full_refine: pixelshuffle`, `use_pos_enc: False`, `act: relu` | 0.464 | 15.20 | 15.65 |
 | [C6_1d_norefine_nopos_relu](#c6_1d_norefine_nopos_relu) | `corr16: 1d`, `full_refine: none`, `use_pos_enc: False`, `act: relu` | 0.451 | 10.48 | 11.12 |
-| [V1_global1d_sa](#v1_global1d_sa) | `corr16: 1d`, `full_refine: pixelshuffle`, `use_pos_enc: False`, `act: relu`, `match8: global1d` | 0.466 | — | — |
-| [V1b_global1d_sa_loc2](#v1b_global1d_sa_loc2) | `corr16: 1d`, `full_refine: pixelshuffle`, `use_pos_enc: False`, `act: relu`, `match8: global1d`, `match8_local_r: 2` | 0.469 | — | — |
-| [V1c_global1d_sa_nof1](#v1c_global1d_sa_nof1) | `corr16: 1d`, `full_refine: pixelshuffle`, `use_pos_enc: False`, `act: relu`, `match8: global1d`, `refine8_f1: False` | 0.454 | — | — |
-| [V1d_global1d_nosa](#v1d_global1d_nosa) | `corr16: 1d`, `full_refine: pixelshuffle`, `use_pos_enc: False`, `act: relu`, `match8: global1d`, `match8_softargmax: False` | 0.466 | — | — |
-| [V2_kpn_r4](#v2_kpn_r4) | `corr16: 1d`, `full_refine: pixelshuffle`, `use_pos_enc: False`, `act: relu`, `warp8: kpn`, `kpn_r8: 4` | 0.486 | — | — |
-| [V2b_kpn_r4_global1d](#v2b_kpn_r4_global1d) | `corr16: 1d`, `full_refine: pixelshuffle`, `use_pos_enc: False`, `act: relu`, `warp8: kpn`, `kpn_r8: 4`, `match8: global1d` | 0.495 | — | — |
-| [V3_dcv_r2_d124](#v3_dcv_r2_d124) | `corr16: 1d`, `full_refine: pixelshuffle`, `use_pos_enc: False`, `act: relu`, `match8: dcv`, `r8: 2`, `dcv_dilations: [1, 2, 4]` | 0.466 | — | — |
-| [A1_local1d_r4](#a1_local1d_r4) | `corr16: 1d`, `full_refine: pixelshuffle`, `use_pos_enc: False`, `act: relu`, `match8: local1d`, `r8: 4` | 0.459 | — | — |
-| [V1_B0_global1d_sa](#v1_b0_global1d_sa) | `match8: global1d` | 0.511 | — | — |
+| [V1_global1d_sa](#v1_global1d_sa) | `corr16: 1d`, `full_refine: pixelshuffle`, `use_pos_enc: False`, `act: relu`, `match8: global1d` | 0.466 | 14.65 | 15.11 |
+| [V1b_global1d_sa_loc2](#v1b_global1d_sa_loc2) | `corr16: 1d`, `full_refine: pixelshuffle`, `use_pos_enc: False`, `act: relu`, `match8: global1d`, `match8_local_r: 2` | 0.469 | 19.50 | 19.96 |
+| [V1c_global1d_sa_nof1](#v1c_global1d_sa_nof1) | `corr16: 1d`, `full_refine: pixelshuffle`, `use_pos_enc: False`, `act: relu`, `match8: global1d`, `refine8_f1: False` | 0.454 | 14.23 | 14.68 |
+| [V1d_global1d_nosa](#v1d_global1d_nosa) | `corr16: 1d`, `full_refine: pixelshuffle`, `use_pos_enc: False`, `act: relu`, `match8: global1d`, `match8_softargmax: False` | 0.466 | 13.34 | 13.80 |
+| [V2_kpn_r4](#v2_kpn_r4) | `corr16: 1d`, `full_refine: pixelshuffle`, `use_pos_enc: False`, `act: relu`, `warp8: kpn`, `kpn_r8: 4` | 0.486 | 16.40 | 16.85 |
+| [V2b_kpn_r4_global1d](#v2b_kpn_r4_global1d) | `corr16: 1d`, `full_refine: pixelshuffle`, `use_pos_enc: False`, `act: relu`, `warp8: kpn`, `kpn_r8: 4`, `match8: global1d` | 0.495 | 20.01 | 20.48 |
+| [V3_dcv_r2_d124](#v3_dcv_r2_d124) | `corr16: 1d`, `full_refine: pixelshuffle`, `use_pos_enc: False`, `act: relu`, `match8: dcv`, `r8: 2`, `dcv_dilations: [1, 2, 4]` | 0.466 | 27.07 | 27.53 |
+| [A1_local1d_r4](#a1_local1d_r4) | `corr16: 1d`, `full_refine: pixelshuffle`, `use_pos_enc: False`, `act: relu`, `match8: local1d`, `r8: 4` | 0.459 | 15.97 | 16.41 |
+| [V1_B0_global1d_sa](#v1_b0_global1d_sa) | `match8: global1d` | 0.511 | 32.20 | 43.40 |
 
 ## B0
 
@@ -1139,7 +1139,7 @@ flowchart TB
 
 ## V1_global1d_sa
 
-Зміни відносно B0: `corr16: 1d`, `full_refine: pixelshuffle`, `use_pos_enc: False`, `act: relu`, `match8: global1d`. Параметрів: 0.466 M. Час на MaixCAM: INT8 — мс, mixed — мс.
+Зміни відносно B0: `corr16: 1d`, `full_refine: pixelshuffle`, `use_pos_enc: False`, `act: relu`, `match8: global1d`. Параметрів: 0.466 M. Час на MaixCAM: INT8 14.65 мс, mixed 15.11 мс.
 
 Активація ReLU в усіх блоках (у B0 — LeakyReLU); вузли через це не підсвічено.
 
@@ -1216,7 +1216,7 @@ flowchart TB
 
 ## V1b_global1d_sa_loc2
 
-Зміни відносно B0: `corr16: 1d`, `full_refine: pixelshuffle`, `use_pos_enc: False`, `act: relu`, `match8: global1d`, `match8_local_r: 2`. Параметрів: 0.469 M. Час на MaixCAM: INT8 — мс, mixed — мс.
+Зміни відносно B0: `corr16: 1d`, `full_refine: pixelshuffle`, `use_pos_enc: False`, `act: relu`, `match8: global1d`, `match8_local_r: 2`. Параметрів: 0.469 M. Час на MaixCAM: INT8 19.50 мс, mixed 19.96 мс.
 
 Активація ReLU в усіх блоках (у B0 — LeakyReLU); вузли через це не підсвічено.
 
@@ -1296,7 +1296,7 @@ flowchart TB
 
 ## V1c_global1d_sa_nof1
 
-Зміни відносно B0: `corr16: 1d`, `full_refine: pixelshuffle`, `use_pos_enc: False`, `act: relu`, `match8: global1d`, `refine8_f1: False`. Параметрів: 0.454 M. Час на MaixCAM: INT8 — мс, mixed — мс.
+Зміни відносно B0: `corr16: 1d`, `full_refine: pixelshuffle`, `use_pos_enc: False`, `act: relu`, `match8: global1d`, `refine8_f1: False`. Параметрів: 0.454 M. Час на MaixCAM: INT8 14.23 мс, mixed 14.68 мс.
 
 Активація ReLU в усіх блоках (у B0 — LeakyReLU); вузли через це не підсвічено.
 
@@ -1373,7 +1373,7 @@ flowchart TB
 
 ## V1d_global1d_nosa
 
-Зміни відносно B0: `corr16: 1d`, `full_refine: pixelshuffle`, `use_pos_enc: False`, `act: relu`, `match8: global1d`, `match8_softargmax: False`. Параметрів: 0.466 M. Час на MaixCAM: INT8 — мс, mixed — мс.
+Зміни відносно B0: `corr16: 1d`, `full_refine: pixelshuffle`, `use_pos_enc: False`, `act: relu`, `match8: global1d`, `match8_softargmax: False`. Параметрів: 0.466 M. Час на MaixCAM: INT8 13.34 мс, mixed 13.80 мс.
 
 Активація ReLU в усіх блоках (у B0 — LeakyReLU); вузли через це не підсвічено.
 
@@ -1447,7 +1447,7 @@ flowchart TB
 
 ## V2_kpn_r4
 
-Зміни відносно B0: `corr16: 1d`, `full_refine: pixelshuffle`, `use_pos_enc: False`, `act: relu`, `warp8: kpn`, `kpn_r8: 4`. Параметрів: 0.486 M. Час на MaixCAM: INT8 — мс, mixed — мс.
+Зміни відносно B0: `corr16: 1d`, `full_refine: pixelshuffle`, `use_pos_enc: False`, `act: relu`, `warp8: kpn`, `kpn_r8: 4`. Параметрів: 0.486 M. Час на MaixCAM: INT8 16.40 мс, mixed 16.85 мс.
 
 Активація ReLU в усіх блоках (у B0 — LeakyReLU); вузли через це не підсвічено.
 
@@ -1522,7 +1522,7 @@ flowchart TB
 
 ## V2b_kpn_r4_global1d
 
-Зміни відносно B0: `corr16: 1d`, `full_refine: pixelshuffle`, `use_pos_enc: False`, `act: relu`, `warp8: kpn`, `kpn_r8: 4`, `match8: global1d`. Параметрів: 0.495 M. Час на MaixCAM: INT8 — мс, mixed — мс.
+Зміни відносно B0: `corr16: 1d`, `full_refine: pixelshuffle`, `use_pos_enc: False`, `act: relu`, `warp8: kpn`, `kpn_r8: 4`, `match8: global1d`. Параметрів: 0.495 M. Час на MaixCAM: INT8 20.01 мс, mixed 20.48 мс.
 
 Активація ReLU в усіх блоках (у B0 — LeakyReLU); вузли через це не підсвічено.
 
@@ -1603,7 +1603,7 @@ flowchart TB
 
 ## V3_dcv_r2_d124
 
-Зміни відносно B0: `corr16: 1d`, `full_refine: pixelshuffle`, `use_pos_enc: False`, `act: relu`, `match8: dcv`, `r8: 2`, `dcv_dilations: [1, 2, 4]`. Параметрів: 0.466 M. Час на MaixCAM: INT8 — мс, mixed — мс.
+Зміни відносно B0: `corr16: 1d`, `full_refine: pixelshuffle`, `use_pos_enc: False`, `act: relu`, `match8: dcv`, `r8: 2`, `dcv_dilations: [1, 2, 4]`. Параметрів: 0.466 M. Час на MaixCAM: INT8 27.07 мс, mixed 27.53 мс.
 
 Активація ReLU в усіх блоках (у B0 — LeakyReLU); вузли через це не підсвічено.
 
@@ -1677,7 +1677,7 @@ flowchart TB
 
 ## A1_local1d_r4
 
-Зміни відносно B0: `corr16: 1d`, `full_refine: pixelshuffle`, `use_pos_enc: False`, `act: relu`, `match8: local1d`, `r8: 4`. Параметрів: 0.459 M. Час на MaixCAM: INT8 — мс, mixed — мс.
+Зміни відносно B0: `corr16: 1d`, `full_refine: pixelshuffle`, `use_pos_enc: False`, `act: relu`, `match8: local1d`, `r8: 4`. Параметрів: 0.459 M. Час на MaixCAM: INT8 15.97 мс, mixed 16.41 мс.
 
 Активація ReLU в усіх блоках (у B0 — LeakyReLU); вузли через це не підсвічено.
 
@@ -1751,7 +1751,7 @@ flowchart TB
 
 ## V1_B0_global1d_sa
 
-Зміни відносно B0: `match8: global1d`. Параметрів: 0.511 M. Час на MaixCAM: INT8 — мс, mixed — мс.
+Зміни відносно B0: `match8: global1d`. Параметрів: 0.511 M. Час на MaixCAM: INT8 32.20 мс, mixed 43.40 мс.
 
 ```mermaid
 flowchart TB
