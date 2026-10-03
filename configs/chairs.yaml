@@ -1,0 +1,13 @@
+# First stage of the proxy protocol (configs/proxy.yaml) as a run of its own:
+# FlyingChairs 30k, evaluated on ALL of Sintel train and KITTI-2015 train, which the
+# model never sees. Used to check the full-length chain on Kaggle before C+T runs.
+batch_size: 64
+num_workers: 16     # files sit on NFS with ~50 ms latency each; workers mostly wait for I/O
+val_interval: 5000
+stages:
+  - name: chairs
+    train: [chairs]
+    val: [[sintel-clean, all], [sintel-final, all], [kitti15, all]]
+    steps: 30000
+    lr_max: 2.0e-3
+    lr_min: 2.0e-4

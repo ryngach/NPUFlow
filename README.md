@@ -10,7 +10,7 @@ Lightweight optical flow network for low-cost NPUs (developed on MaixCAM, Sophgo
 | `data.py` | datasets (FlyingChairs, Sintel, KITTI-2015), augmentation |
 | `losses.py` | multi-scale training loss |
 | `train.py` | staged training with resume, honest validation, optional ClearML logging |
-| `configs/` | training protocols (`proxy.yaml`, `smoke.yaml`) |
+| `configs/` | training protocols (`proxy.yaml`, `chairs.yaml`, `smoke.yaml`) |
 | `bench/variants.yaml` | architecture variants |
 | `bench/speed.py` | on-device speed of variants, no training needed |
 | `bench/eqexp.py`, `emu_eval.py` | INT8 accuracy on the x86 TPU emulator |
@@ -18,6 +18,7 @@ Lightweight optical flow network for low-cost NPUs (developed on MaixCAM, Sophgo
 | `bench/bf16_blocks.py`, `stage_diag.py`, `concat_levels.py` | where accuracy is lost, what each stage does |
 | `docker/tpumlir.Dockerfile` | pinned TPU-MLIR toolchain |
 | `results/` | append-only experiment records |
+| `docs/journal.md` | lab journal: every experiment, its settings and conclusion (Ukrainian) |
 | `kaggle/` | agent notebook for Kaggle (`npuflow-agent.ipynb`) and `submit.py` to queue runs |
 
 ## Training
