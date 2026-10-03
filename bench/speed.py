@@ -115,9 +115,13 @@ def export_onnx(cfg_overrides: dict, out_path: Path) -> dict:
 
 def docker_run(workdir: Path, script: str, log_name: str):
     rel = workdir.relative_to(ROOT)
+    # bench/work, bench/calib and datasets may be symlinks out of the repository: mount their
+    # targets at the same absolute path so the links resolve inside the container too
+    links = sorted({str(p.resolve()) for p in (WORK, CALIB, ROOT / "datasets") if p.is_symlink()})
+    mounts = [arg for target in links for arg in ("-v", f"{target}:{target}")]
     cmd = ["docker", "run", "--rm",
            "--user", f"{os.getuid()}:{os.getgid()}", "-e", "HOME=/tmp",
-           "-v", f"{ROOT}:/workspace", "-w", f"/workspace/{rel}",
+           "-v", f"{ROOT}:/workspace", *mounts, "-w", f"/workspace/{rel}",
            DOCKER_IMAGE, "bash", "-c", "set -e\n" + script]
     proc = subprocess.run(cmd, text=True, capture_output=True)
     (workdir / log_name).write_text(proc.stdout + "\n--- stderr ---\n" + proc.stderr)
