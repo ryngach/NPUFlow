@@ -8,6 +8,7 @@
 The agent clones the repository at the given branch, so push your commits first.
 """
 import argparse
+import subprocess
 
 from clearml import Task
 
@@ -28,6 +29,16 @@ def main():
 
     if args.resume:
         task = Task.get_task(task_id=args.resume)
+        if str(task.status) not in ("stopped", "failed", "completed", "created"):
+            ap.error(f"task is {task.status}; stop it first")
+        # the agent pins the commit it ran; move the task to the branch head so that a resumed
+        # run picks up fixes pushed since (artifacts such as train_state are kept)
+        head = subprocess.run(["git", "ls-remote", REPO, f"refs/heads/{args.branch}"], text=True,
+                              capture_output=True, check=True).stdout.split()[0]
+        task.session.send_request("tasks", "edit", json={
+            "task": task.id, "force": True,
+            "script": {**task.data.script.to_dict(), "branch": args.branch, "version_num": head}})
+        print(f"code: {args.branch} @ {head[:7]}")
     else:
         if not args.name:
             ap.error("--name is required for a new run")
