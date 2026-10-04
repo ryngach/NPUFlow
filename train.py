@@ -98,10 +98,11 @@ def rng_state():
 def set_rng_state(state):
     random.setstate(state["py"])
     np.random.set_state(state["np"])
-    torch.set_rng_state(state["torch"])
+    # the state file is loaded with map_location=device, but RNG states must be CPU byte tensors
+    torch.set_rng_state(state["torch"].cpu())
     if torch.cuda.is_available() and state.get("cuda") is not None:
         try:
-            torch.cuda.set_rng_state_all(state["cuda"])
+            torch.cuda.set_rng_state_all([s.cpu() for s in state["cuda"]])
         except Exception:
             pass   # different number of GPUs than when the state was saved
 
