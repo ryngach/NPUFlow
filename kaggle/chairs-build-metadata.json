@@ -1,0 +1,1 @@
+{"id": "ryngach/npuflow-chairs-build", "title": "npuflow-chairs-build", "code_file": "build_chairs.py", "language": "python", "kernel_type": "script", "is_private": true, "enable_gpu": false, "enable_internet": false, "dataset_sources": ["craljimenez/flyingchairs"], "competition_sources": [], "kernel_sources": []}
