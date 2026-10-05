@@ -10,7 +10,9 @@ EPE is measured in original pixels over all valid pixels. That is the number
 comparable with the literature.
 
 Dataset roots come from the DATA dict (environment variables NPUFLOW_CHAIRS,
-NPUFLOW_THINGS, NPUFLOW_SINTEL, NPUFLOW_KITTI, with local defaults).
+NPUFLOW_CHAIRS_COMPACT, NPUFLOW_THINGS, NPUFLOW_SINTEL, NPUFLOW_KITTI, with local
+defaults). FlyingChairs is read from the original files if present, else from the
+compact copy.
 """
 import math
 import os
@@ -59,6 +61,7 @@ def _find(env_name: str, marker: str, local: Path) -> str:
 
 DATA = {
     "chairs": _find("NPUFLOW_CHAIRS", "00001_img1.ppm", ROOT / "datasets" / "FlyingChairs_release" / "data"),
+    "chairs_compact": _find("NPUFLOW_CHAIRS_COMPACT", "chairs_00_flow.npy", ROOT / "datasets" / "chairs_compact"),
     "things": _find("NPUFLOW_THINGS", "things_00_flow.npy", ROOT / "datasets" / "things_compact"),
     "sintel": _find("NPUFLOW_SINTEL", "training/clean/alley_1/frame_0001.png", ROOT / "datasets" / "MPI-Sintel-complete"),
     "kitti": _find("NPUFLOW_KITTI", "training/flow_occ/000000_10.png", ROOT / "datasets" / "data_scene_flow"),
@@ -431,18 +434,30 @@ class FlowPairs(Dataset):
 
 
 class FlyingChairs(FlowPairs):
+    """The original release if it is present, else the compact copy (kaggle/build_chairs.py).
+
+    The compact copy keeps the sorted order of the original names, so the same
+    deterministic split selects the same pairs in both forms.
+    """
     strong_aug = True
 
     def __init__(self, split, size_hw, augment):
         super().__init__(size_hw, augment)
         root = Path(DATA["chairs"])
-        if not root.is_dir():
-            raise FileNotFoundError(f"FlyingChairs not found: {root} (set NPUFLOW_CHAIRS)")
-        bases = sorted(p.name[:-len("_img1.ppm")] for p in root.glob("*_img1.ppm"))
-        self.samples = [(root / f"{b}_img1.ppm", root / f"{b}_img2.ppm", root / f"{b}_flow.flo")
-                        for b in (bases[i] for i in _split_indices(len(bases), split))]
+        if root.is_dir() and (root / "00001_img1.ppm").exists():
+            self.source = f"original {root}"
+            bases = sorted(p.name[:-len("_img1.ppm")] for p in root.glob("*_img1.ppm"))
+            self.samples = [(root / f"{b}_img1.ppm", root / f"{b}_img2.ppm", root / f"{b}_flow.flo")
+                            for b in (bases[i] for i in _split_indices(len(bases), split))]
+            self.compact = None
+        else:
+            self.compact = CompactPairs("chairs", DATA["chairs_compact"], split)
+            self.source = f"compact {DATA['chairs_compact']}"
+            self.samples = self.compact.samples
 
     def load(self, index):
+        if self.compact is not None:
+            return self.compact.load(index)
         f0, f1, fflow = self.samples[index]
         flow = read_flo(str(fflow))
         valid = np.ones(flow.shape[1:], dtype=bool)
@@ -494,27 +509,26 @@ class Kitti2015(FlowPairs):
         return iio.imread(f0), iio.imread(f1), np.ascontiguousarray(flow.transpose(2, 0, 1)), valid, valid
 
 
-class FlyingThings3D(FlowPairs):
-    """Compact copy of the FlyingThings3D subset written by kaggle/build_things.py.
+class CompactPairs:
+    """Reader of the compact format written by kaggle/build_things.py and build_chairs.py.
 
-    Frames and flow are stored at the model height (256x456), flow as float16 in a
+    Frames and flow are stored at the fit scale of the model: flow as float16 in a
     memory-mapped array per shard, frames as JPEG bytes in one file per shard, so a
     sample costs three reads from a few large files instead of three file opens.
     """
 
-    def __init__(self, split, size_hw, augment):
-        super().__init__(size_hw, augment)
-        root = Path(DATA["things"])
-        flows = sorted(root.glob("things_*_flow.npy"))
+    def __init__(self, prefix, root, split):
+        root = Path(root)
+        flows = sorted(root.glob(f"{prefix}_*_flow.npy"))
         if not flows:
-            raise FileNotFoundError(f"compact FlyingThings3D not found: {root} (set NPUFLOW_THINGS)")
-        self.shards = []
+            raise FileNotFoundError(f"compact {prefix} not found: {root}")
+        self.shards, samples = [], []
         for k, flow_path in enumerate(flows):
             base = str(flow_path)[:-len("_flow.npy")]
             index = np.load(base + "_index.npy")
             self.shards.append((str(flow_path), base + "_img.bin", index))
-            self.samples += [(k, i) for i in range(len(index))]
-        self.samples = [self.samples[i] for i in _split_indices(len(self.samples), split)]
+            samples += [(k, i) for i in range(len(index))]
+        self.samples = [samples[i] for i in _split_indices(len(samples), split)]
         self._open = {}          # per-process handles, opened on first use (workers must not share them)
 
     def _handles(self, k):
@@ -539,6 +553,19 @@ class FlyingThings3D(FlowPairs):
         state = dict(self.__dict__)
         state["_open"] = {}
         return state
+
+
+class FlyingThings3D(FlowPairs):
+    """Compact copy of the FlyingThings3D subset written by kaggle/build_things.py (256x456)."""
+
+    def __init__(self, split, size_hw, augment):
+        super().__init__(size_hw, augment)
+        self.compact = CompactPairs("things", DATA["things"], split)
+        self.samples = self.compact.samples
+        self.source = f"compact {DATA['things']}"
+
+    def load(self, index):
+        return self.compact.load(index)
 
 
 def make_dataset(name: str, split: str, size_hw, augment: bool, aug_recipe: str = "raft") -> FlowPairs:

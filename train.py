@@ -297,6 +297,9 @@ def main():
         train_sets = [make_dataset(n, "all" if n in ("chairs", "things") else "train", size_hw, augment=True,
                                    aug_recipe=cfg["aug"]) for n in stage["train"]]
         train_ds = train_sets[0] if len(train_sets) == 1 else ConcatDataset(train_sets)
+        for n, d in zip(stage["train"], train_sets):
+            if getattr(d, "source", None):
+                print(f"[{stage['name']}] {n}: {d.source}")
         loader = DataLoader(train_ds, batch_size=cfg["batch_size"], shuffle=True, drop_last=True,
                             num_workers=cfg["num_workers"], pin_memory=device.type == "cuda",
                             persistent_workers=cfg["num_workers"] > 0)
