@@ -44,3 +44,9 @@ V3_dcv_r2_d124:        {corr16: 1d, full_refine: pixelshuffle, use_pos_enc: fals
 A1_local1d_r4:         {corr16: 1d, full_refine: pixelshuffle, use_pos_enc: false, act: relu,
                         match8: local1d, r8: 4}
 V1_B0_global1d_sa:     {match8: global1d}   # cost of B1 alone on top of B0
+
+# No s32 level (encoder s32, global correlation, update32): the s32 stage adds nothing on
+# average (stage_diag) but occasionally explodes (bench/outliers.py, C3 on cave_2).
+S10_no_s32:            {use_s32: false}
+C3n_no_s32:            {corr16: 1d, full_refine: pixelshuffle, use_pos_enc: false, act: relu, use_s32: false}
+C5n_no_s32:            {r16: 4, full_refine: pixelshuffle, use_pos_enc: false, act: relu, use_s32: false}

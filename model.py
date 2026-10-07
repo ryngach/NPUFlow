@@ -25,6 +25,8 @@ class ModelConfig:
     use_l2norm: bool = True
     corr16: str = "2d"          # "2d": (2r+1)^2 shifts | "1d": horizontal + vertical shifts
     full_refine: str = "conv"   # "conv": full-res refine block | "pixelshuffle" | "none"
+    use_s32: bool = True        # False: no s32 encoder level, global correlation or update32; the
+                                # coarse estimate starts at s16 from zero flow
     # --- matching at s8 (PLAN.md section 9, replacements for warping / lookup) ---
     match8: str = "none"        # "none" | "global1d" (B1: dual-1D global corr + soft-argmax)
                                 # | "local1d" (dual-1D local corr, radius r8)
@@ -162,10 +164,13 @@ class EfficientEncoder(nn.Module):
             DWConvBlock(C * 2, C * 2, 1, a),
         )
         self.s16_block = nn.Sequential(DWConvBlock(C * 2, C * 2, 2, a))  # /16
-        self.s32_block = nn.Sequential(DWConvBlock(C * 2, C * 2, 2, a))  # /32
+        self.use_s32 = cfg.use_s32
+        if self.use_s32:
+            self.s32_block = nn.Sequential(DWConvBlock(C * 2, C * 2, 2, a))  # /32
 
         self.downsample_s8_to_s16 = nn.MaxPool2d(kernel_size=2, stride=2)
-        self.downsample_s16_to_s32 = nn.MaxPool2d(kernel_size=2, stride=2)
+        if self.use_s32:
+            self.downsample_s16_to_s32 = nn.MaxPool2d(kernel_size=2, stride=2)
 
         self.s4_block = nn.Sequential(DWConvBlock(C, C, 1, a))
 
@@ -179,20 +184,24 @@ class EfficientEncoder(nn.Module):
             self.pos_enc4 = StaticPositionalEncoder(H // 4, W // 4)
             self.pos_enc8 = StaticPositionalEncoder(H // 8, W // 8)
             self.pos_enc16 = StaticPositionalEncoder(H // 16, W // 16)
-            self.pos_enc32 = StaticPositionalEncoder(H // 32, W // 32)
+            if self.use_s32:
+                self.pos_enc32 = StaticPositionalEncoder(H // 32, W // 32)
 
             self.pos_proj_s4 = nn.Conv2d(self.out_s4_ch + 2, self.out_s4_ch, 1, bias=False)
             self.pos_proj_s8 = nn.Conv2d(self.out_s8_ch + 2, self.out_s8_ch, 1, bias=False)
             self.pos_proj_s16 = nn.Conv2d(self.out_s16_ch + 2, self.out_s16_ch, 1, bias=False)
-            self.pos_proj_s32 = nn.Conv2d(self.out_s32_ch + 2, self.out_s32_ch, 1, bias=False)
+            if self.use_s32:
+                self.pos_proj_s32 = nn.Conv2d(self.out_s32_ch + 2, self.out_s32_ch, 1, bias=False)
 
         if self.use_se:
             self.se_s8 = SEBlock(self.out_s8_ch, r=16, spatial_size=(H // 8, W // 8))
             self.se_s16 = SEBlock(self.out_s16_ch, r=16, spatial_size=(H // 16, W // 16))
-            self.se_s32 = SEBlock(self.out_s32_ch, r=16, spatial_size=(H // 32, W // 32))
+            if self.use_s32:
+                self.se_s32 = SEBlock(self.out_s32_ch, r=16, spatial_size=(H // 32, W // 32))
 
         self.alpha_s16 = nn.Parameter(torch.tensor(0.5))
-        self.alpha_s32 = nn.Parameter(torch.tensor(0.5))
+        if self.use_s32:
+            self.alpha_s32 = nn.Parameter(torch.tensor(0.5))
 
     def forward(self, x):
         # s4
@@ -215,11 +224,13 @@ class EfficientEncoder(nn.Module):
             s16 = self.se_s16(s16)
 
         # s32 + skip
-        s32 = self.s32_block(s16)
-        s32_down = self.downsample_s16_to_s32(s16)
-        s32 = self.alpha_s32 * s32 + (1 - self.alpha_s32) * s32_down
-        if self.use_se:
-            s32 = self.se_s32(s32)
+        s32 = None
+        if self.use_s32:
+            s32 = self.s32_block(s16)
+            s32_down = self.downsample_s16_to_s32(s16)
+            s32 = self.alpha_s32 * s32 + (1 - self.alpha_s32) * s32_down
+            if self.use_se:
+                s32 = self.se_s32(s32)
 
         if not self.use_pos_enc:
             return s4_feat, s8, s16, s32
@@ -227,7 +238,7 @@ class EfficientEncoder(nn.Module):
         s4_pos = self.pos_proj_s4(self.pos_enc4(s4_feat))
         s8_pos = self.pos_proj_s8(self.pos_enc8(s8))
         s16_pos = self.pos_proj_s16(self.pos_enc16(s16))
-        s32_pos = self.pos_proj_s32(self.pos_enc32(s32))
+        s32_pos = self.pos_proj_s32(self.pos_enc32(s32)) if self.use_s32 else None
         return s4_pos, s8_pos, s16_pos, s32_pos
 
 
@@ -405,21 +416,25 @@ class EdgeFlowNet(nn.Module):
         s32_ch = self.enc.out_s32_ch
 
         # 1. Global correlation (s32)
-        self.corr32 = GlobalCorrelationDual1D(channels=s32_ch, normalize=cfg.use_l2norm)
-        cv32_ch = cfg.image_size[0] // 32 + cfg.image_size[1] // 32
+        cv32_ch = 0
+        if cfg.use_s32:
+            self.corr32 = GlobalCorrelationDual1D(channels=s32_ch, normalize=cfg.use_l2norm)
+            cv32_ch = cfg.image_size[0] // 32 + cfg.image_size[1] // 32
 
         # 2. Local correlation (s16)
         self.corr16 = LocalCostVolumePad(cfg.r16, mode=cfg.corr16, normalize=cfg.use_l2norm)
         cv16_ch = self.corr16.out_channels
 
         # 3. Context convolutions
-        self.ctx32 = nn.Conv2d(s32_ch, s16_ch, 1, bias=False)
+        if cfg.use_s32:
+            self.ctx32 = nn.Conv2d(s32_ch, s16_ch, 1, bias=False)
         self.ctx16 = nn.Conv2d(s16_ch, s16_ch, 1, bias=False)
         self.ctx8 = nn.Conv2d(s8_ch, s16_ch, 1, bias=False)
         self.ctx4 = nn.Conv2d(s4_ch, s16_ch, 1, bias=False)
 
         # 4. Coarse updates
-        self.update32 = CoarseUpdateLite(cv32_ch + 2 + s16_ch, hidden=128, act=a)
+        if cfg.use_s32:
+            self.update32 = CoarseUpdateLite(cv32_ch + 2 + s16_ch, hidden=128, act=a)
         self.update16 = CoarseUpdateLite(cv16_ch + cv32_ch + 2 + s16_ch, hidden=128, act=a)
         self.iters32, self.iters16 = cfg.iters32, cfg.iters16
 
@@ -511,12 +526,13 @@ class EdgeFlowNet(nn.Module):
     def _cat_targets(self):
         """Concat name -> conv that consumes it (its weights absorb the scales)."""
         targets = {
-            "update32": self.update32.reduce[0],
             "update16": self.update16.reduce[0],
             "refine_s16": self.refine_s16.reduce[0],
             "refine_s8": self.refine_s8.reduce[0],
             "refine_s4": self.refine_s4.reduce[0],
         }
+        if self.cfg.use_s32:
+            targets["update32"] = self.update32.reduce[0]
         if self.cfg.full_refine == "conv":
             targets["full"] = self.full_refine[0].dw
         elif self.cfg.full_refine == "pixelshuffle":
@@ -562,26 +578,33 @@ class EdgeFlowNet(nn.Module):
         f0_s4, f0_s8, f0_s16, f0_s32 = self.enc(img0)
         f1_s4, f1_s8, f1_s16, f1_s32 = self.enc(img1)
 
-        ctx32 = self.ctx32(f0_s32)
         ctx16 = self.ctx16(f0_s16)
         ctx8 = self.ctx8(f0_s8)
         ctx4 = self.ctx4(f0_s4)
 
         # --- s32 ---
-        B, _, H32, W32 = f0_s32.shape
-        flow_s32 = torch.zeros(B, 2, H32, W32, device=img0.device, dtype=img0.dtype)
-        cost32 = self.corr32(f0_s32, f1_s32)
-        for _ in range(self.iters32):
-            delta = self.update32(self._cat("update32", [cost32, flow_s32, ctx32]))
-            flow_s32 = flow_s32 + delta
+        B, _, H16, W16 = f0_s16.shape
+        flow_s32 = None
+        if self.cfg.use_s32:
+            _, _, H32, W32 = f0_s32.shape
+            ctx32 = self.ctx32(f0_s32)
+            flow_s32 = torch.zeros(B, 2, H32, W32, device=img0.device, dtype=img0.dtype)
+            cost32 = self.corr32(f0_s32, f1_s32)
+            for _ in range(self.iters32):
+                delta = self.update32(self._cat("update32", [cost32, flow_s32, ctx32]))
+                flow_s32 = flow_s32 + delta
 
         # --- s16 ---
-        _, _, H16, W16 = f0_s16.shape
-        flow_s16 = F.interpolate(flow_s32, size=(H16, W16), mode='bilinear', align_corners=False) * 2.0
         cost16 = self.corr16(f0_s16, f1_s16)
-        cost32_up = F.interpolate(cost32, size=(H16, W16), mode='bilinear', align_corners=False)
+        if self.cfg.use_s32:
+            flow_s16 = F.interpolate(flow_s32, size=(H16, W16), mode='bilinear', align_corners=False) * 2.0
+            cost32_up = F.interpolate(cost32, size=(H16, W16), mode='bilinear', align_corners=False)
+            groups16 = [cost16, cost32_up]
+        else:
+            flow_s16 = torch.zeros(B, 2, H16, W16, device=img0.device, dtype=img0.dtype)
+            groups16 = [cost16]
         for _ in range(self.iters16):
-            delta = self.update16(self._cat("update16", [cost16, cost32_up, flow_s16, ctx16]))
+            delta = self.update16(self._cat("update16", groups16 + [flow_s16, ctx16]))
             flow_s16 = flow_s16 + delta
 
         # --- s16 refine ---
@@ -628,7 +651,7 @@ class EdgeFlowNet(nn.Module):
         else:
             flow_full_ref = flow_full
 
-        if self.training:
+        if self.training:   # flow_s32 is None without the s32 level; the loss then skips that scale
             return [flow_s32, flow_s16_ref, flow_s8_ref, flow_s4_ref, flow_full_ref], None
         return flow_full_ref
 

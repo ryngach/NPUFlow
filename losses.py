@@ -95,7 +95,8 @@ def multiscale_loss_masked(preds, gt, img_in, valid_mask=None,
         return (x_epe * m_sq).sum() / (m_sq.sum() + 1e-6)
 
     # Loss at each scale
-    loss_s32 = masked_mean_charbonnier(endpoint_error(p_s32, gt_s32), vm32)
+    loss_s32 = (masked_mean_charbonnier(endpoint_error(p_s32, gt_s32), vm32) if p_s32 is not None
+                else gt.new_zeros(()))           # model without the s32 level
     loss_s16 = masked_mean_charbonnier(endpoint_error(p_s16, gt_s16), vm16)
     loss_s8 = masked_mean_charbonnier(endpoint_error(p_s8, gt_s8), vm8)
     loss_s4 = masked_mean_charbonnier(endpoint_error(p_s4, gt_s4), vm4)
@@ -131,7 +132,7 @@ def multiscale_loss_masked(preds, gt, img_in, valid_mask=None,
         'loss': float(total.item()),
     'epe': float(epe.item()),
     'ft_all': float(ft_all.item()),
-        'epe_s32': float(masked_mean_epe(endpoint_error(p_s32, gt_s32), vm32).item()),
+        'epe_s32': float(masked_mean_epe(endpoint_error(p_s32, gt_s32), vm32).item()) if p_s32 is not None else 0.0,
         'epe_s16': float(masked_mean_epe(endpoint_error(p_s16, gt_s16), vm16).item()),
         'epe_s8': float(masked_mean_epe(endpoint_error(p_s8, gt_s8), vm8).item()),
         'epe_s4': float(masked_mean_epe(endpoint_error(p_s4, gt_s4), vm4).item()),
