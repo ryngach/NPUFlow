@@ -1,0 +1,15 @@
+# Second stage of the proxy protocol (configs/proxy.yaml) as a run of its own:
+# FlyingThings3D 30k starting from the weights of a Chairs run, evaluated on ALL of
+# Sintel train and KITTI-2015 train. The start weights are given per run:
+#   python kaggle/submit.py --name C3-things --config configs/things.yaml --variant C3_1d_ps_nopos_relu \
+#       --set init=clearml:<Chairs task id>/chairs_ema_best
+batch_size: 64
+num_workers: 16
+val_interval: 5000
+stages:
+  - name: things
+    train: [things]
+    val: [[sintel-clean, all], [sintel-final, all], [kitti15, all]]
+    steps: 30000
+    lr_max: 4.0e-4
+    lr_min: 4.0e-5

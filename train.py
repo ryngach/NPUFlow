@@ -42,6 +42,8 @@ DEFAULTS = {
     "aug": "raft",           # "raft" | "december" (the recipe of the December training)
     "data_parallel": False,  # nn.DataParallel over all GPUs; on Kaggle (4 CPU cores, 2x T4) it is 5x SLOWER
     "val_limit": 0,          # 0 = whole validation sets; N = first N pairs of each (smoke tests)
+    "init": "",              # weights to start from when there is no saved state: a local .pth,
+                             # or clearml:<task id>/<artifact name> (e.g. the chairs_ema_best of a Chairs run)
     "model": {},             # overrides of ModelConfig
     "stages": [],            # each: name, train [datasets], val [[dataset, split], ...], steps, lr_max, lr_min
 }
@@ -149,6 +151,8 @@ def evaluate(model, dataset, size_hw, limit=0):
     model.eval()
     device = next(model.parameters()).device
     sums = {"all": [0.0, 0], "noc": [0.0, 0], "out": [0.0, 0]}
+    worst = (-1.0, -1)          # (EPE of the pair, index): a few exploding pairs can dominate the mean
+    max_flow = 0.0
     n = len(dataset) if not limit else min(limit, len(dataset))
     for i in range(n):
         img0, img1, gt, valid_noc, valid_all = dataset[i]
@@ -156,6 +160,9 @@ def evaluate(model, dataset, size_hw, limit=0):
         gt, valid_noc, valid_all = gt.to(device), valid_noc.to(device), valid_all.to(device)
         err = torch.sqrt(((flow - gt) ** 2).sum(0))
         mag = torch.sqrt((gt ** 2).sum(0))
+        pair_epe = float(err[valid_all].mean()) if valid_all.any() else 0.0
+        worst = max(worst, (pair_epe, i))
+        max_flow = max(max_flow, float(torch.sqrt((flow ** 2).sum(0)).max()))
         sums["all"][0] += float(err[valid_all].sum())
         sums["all"][1] += int(valid_all.sum())
         sums["noc"][0] += float(err[valid_noc].sum())
@@ -165,7 +172,33 @@ def evaluate(model, dataset, size_hw, limit=0):
         sums["out"][1] += int(valid_all.sum())
     return {"epe_all": sums["all"][0] / max(1, sums["all"][1]),
             "epe_noc": sums["noc"][0] / max(1, sums["noc"][1]),
-            "fl_all": 100.0 * sums["out"][0] / max(1, sums["out"][1]), "pairs": n}
+            "fl_all": 100.0 * sums["out"][0] / max(1, sums["out"][1]), "pairs": n,
+            "worst_epe": worst[0], "worst_pair": pair_name(dataset, worst[1]), "max_flow": max_flow}
+
+
+def pair_name(dataset, index) -> str:
+    """Short readable name of a sample: the last two components of its first frame path."""
+    if index < 0:
+        return ""
+    sample = dataset.samples[index]
+    if len(sample) == 4 and isinstance(sample[1], str):      # Sintel: (pass, scene, frame0, frame1)
+        return f"{sample[1]}/{sample[2]}"
+    first = sample[0]
+    if isinstance(first, (str, Path)):
+        parts = Path(first).parts
+        return "/".join(parts[-2:])
+    return f"#{index}"
+
+
+def load_init(spec: str):
+    """State dict from a local file or from a ClearML artifact (clearml:<task id>/<artifact>)."""
+    if spec.startswith("clearml:"):
+        from clearml import Task
+        task_id, artifact = spec[len("clearml:"):].split("/", 1)
+        path = Task.get_task(task_id=task_id).artifacts[artifact].get_local_copy()
+    else:
+        path = spec
+    return torch.load(path, map_location="cpu", weights_only=True)
 
 
 # ------------------------------------------------------------------ training
@@ -262,6 +295,10 @@ def main():
         state = torch.load(state_path, map_location=device, weights_only=False)
         print(f"[resume] stage {state['stage']} step {state['step']}")
 
+    if state is None and cfg.get("init"):
+        unwrap(model).load_state_dict(load_init(cfg["init"]))
+        print(f"[init] weights from {cfg['init']}")
+
     started = time.time()
     deadline = float(os.environ.get("NPUFLOW_DEADLINE", 0))   # absolute time set by the Kaggle agent notebook
     stopped_early = False
@@ -324,13 +361,16 @@ def main():
                 row[name] = res
                 if logger:
                     gstep = sum(int(s["steps"]) for s in cfg["stages"][:stage_idx]) + step
-                    for k in ("epe_all", "epe_noc", "fl_all"):
+                    for k in ("epe_all", "epe_noc", "fl_all", "worst_epe", "max_flow"):
                         logger.report_scalar(f"val {k}", name, res[k], gstep)
             score = float(np.mean([row[n]["epe_all"] for n, _ in val_sets]))
             row["score"] = score
             history.append(row)
             print(f"[VAL {stage['name']}] step {step}: mean EPE {score:.3f} | "
                   + " | ".join(f"{n} all {row[n]['epe_all']:.3f} noc {row[n]['epe_noc']:.3f} Fl {row[n]['fl_all']:.1f}%"
+                               for n, _ in val_sets), flush=True)
+            print(f"[VAL {stage['name']}] step {step}: worst pair | "
+                  + " | ".join(f"{n} {row[n]['worst_pair']} EPE {row[n]['worst_epe']:.2f}, max |flow| {row[n]['max_flow']:.0f}"
                                for n, _ in val_sets), flush=True)
             torch.save(eval_model.state_dict(), out_dir / f"{stage['name']}_ema_last.pth")
             if score < best:
