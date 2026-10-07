@@ -62,25 +62,28 @@ def nodes_and_edges(cfg: ModelConfig, model: EdgeFlowNet):
     add("enc", "E4", f"DW s2 → DW s2 → DW<br/>s4: {shape(s4, H // 4, W // 4)}{pe}")
     add("enc", "E8", f"DW s2 → DW → DW{se}<br/>s8: {shape(s8, H // 8, W // 8)}{pe}")
     add("enc", "E16", f"DW s2 ⊕α maxpool{se}<br/>s16: {shape(s16, H // 16, W // 16)}{pe}")
-    add("enc", "E32", f"DW s2 ⊕α maxpool{se}<br/>s32: {shape(s32, H // 32, W // 32)}{pe}")
-    e += [("I0", "E4", ""), ("I1", "E4", ""), ("E4", "E8", ""), ("E8", "E16", ""), ("E16", "E32", "")]
-
+    e += [("I0", "E4", ""), ("I1", "E4", ""), ("E4", "E8", ""), ("E8", "E16", "")]
     norm = "l2norm, " if cfg.use_l2norm else ""
     cv32 = H // 32 + W // 32
-    add("s32", "C32", f"глобальна кореляція dual-1D<br/>{norm}MatMul → {cv32} кан.")
-    add("s32", "U32", f"CoarseUpdate ×{cfg.iters32}<br/>вхід {model.update32.reduce[0].in_channels} → 128 → Δflow")
-    e += [("E32", "C32", "f0, f1"), ("C32", "U32", ""), ("E32", "U32", "ctx")]
+    if cfg.use_s32:
+        add("enc", "E32", f"DW s2 ⊕α maxpool{se}<br/>s32: {shape(s32, H // 32, W // 32)}{pe}")
+        add("s32", "C32", f"глобальна кореляція dual-1D<br/>{norm}MatMul → {cv32} кан.")
+        add("s32", "U32", f"CoarseUpdate ×{cfg.iters32}<br/>вхід {model.update32.reduce[0].in_channels} → 128 → Δflow")
+        e += [("E16", "E32", ""), ("E32", "C32", "f0, f1"), ("C32", "U32", ""), ("E32", "U32", "ctx")]
 
     if cfg.corr16 == "2d":
         c16 = f"локальна кореляція 2D r={cfg.r16}<br/>{norm}{model.corr16.out_channels} зсувів"
     else:
         c16 = f"локальна кореляція 1D r={cfg.r16}<br/>{norm}{model.corr16.out_channels} зсувів (гориз. + верт.)"
     add("s16", "C16", c16)
-    add("s16", "UP32", f"bilinear ↑ cost32<br/>{cv32} кан.")
-    add("s16", "U16", f"CoarseUpdate ×{cfg.iters16}<br/>вхід {model.update16.reduce[0].in_channels} → 128 → Δflow")
+    if cfg.use_s32:
+        add("s16", "UP32", f"bilinear ↑ cost32<br/>{cv32} кан.")
+    start = "" if cfg.use_s32 else "<br/>старт з нульового потоку"
+    add("s16", "U16", f"CoarseUpdate ×{cfg.iters16}<br/>вхід {model.update16.reduce[0].in_channels} → 128 → Δflow{start}")
     add("s16", "R16", f"refine_s16<br/>вхід {model.refine_s16.reduce[0].in_channels} → 128 → Δflow")
-    e += [("E16", "C16", "f0, f1"), ("C32", "UP32", ""), ("UP32", "U16", ""), ("C16", "U16", ""),
-          ("U32", "U16", "flow ×2↑"), ("U16", "R16", "flow"), ("E16", "R16", "f0, f1, ctx")]
+    e += [("E16", "C16", "f0, f1"), ("C16", "U16", ""), ("U16", "R16", "flow"), ("E16", "R16", "f0, f1, ctx")]
+    if cfg.use_s32:
+        e += [("C32", "UP32", ""), ("UP32", "U16", ""), ("U32", "U16", "flow ×2↑")]
 
     r8_src = "R16"
     if cfg.match8 == "global1d":

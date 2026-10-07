@@ -37,6 +37,9 @@
 | [V3_dcv_r2_d124](#v3_dcv_r2_d124) | `corr16: 1d`, `full_refine: pixelshuffle`, `use_pos_enc: False`, `act: relu`, `match8: dcv`, `r8: 2`, `dcv_dilations: [1, 2, 4]` | 0.466 | 27.07 | 27.53 |
 | [A1_local1d_r4](#a1_local1d_r4) | `corr16: 1d`, `full_refine: pixelshuffle`, `use_pos_enc: False`, `act: relu`, `match8: local1d`, `r8: 4` | 0.459 | 15.97 | 16.41 |
 | [V1_B0_global1d_sa](#v1_b0_global1d_sa) | `match8: global1d` | 0.511 | 32.20 | 43.40 |
+| [S10_no_s32](#s10_no_s32) | `use_s32: False` | 0.398 | 28.85 | 39.93 |
+| [C3n_no_s32](#c3n_no_s32) | `corr16: 1d`, `full_refine: pixelshuffle`, `use_pos_enc: False`, `act: relu`, `use_s32: False` | 0.362 | 10.89 | 11.35 |
+| [C5n_no_s32](#c5n_no_s32) | `r16: 4`, `full_refine: pixelshuffle`, `use_pos_enc: False`, `act: relu`, `use_s32: False` | 0.369 | 14.56 | 15.02 |
 
 ## B0
 
@@ -88,12 +91,12 @@ flowchart TB
   C32 --> U32
   E32 -->|ctx| U32
   E16 -->|f0, f1| C16
-  C32 --> UP32
-  UP32 --> U16
   C16 --> U16
-  U32 -->|flow ×2↑| U16
   U16 -->|flow| R16
   E16 -->|f0, f1, ctx| R16
+  C32 --> UP32
+  UP32 --> U16
+  U32 -->|flow ×2↑| U16
   R16 -->|flow ×2↑| R8
   E8 -->|f0, f1, ctx| R8
   R8 -->|flow ×2↑| R4
@@ -154,12 +157,12 @@ flowchart TB
   C32 --> U32
   E32 -->|ctx| U32
   E16 -->|f0, f1| C16
-  C32 --> UP32
-  UP32 --> U16
   C16 --> U16
-  U32 -->|flow ×2↑| U16
   U16 -->|flow| R16
   E16 -->|f0, f1, ctx| R16
+  C32 --> UP32
+  UP32 --> U16
+  U32 -->|flow ×2↑| U16
   R16 -->|flow ×2↑| R8
   E8 -->|f0, f1, ctx| R8
   R8 -->|flow ×2↑| R4
@@ -221,12 +224,12 @@ flowchart TB
   C32 --> U32
   E32 -->|ctx| U32
   E16 -->|f0, f1| C16
-  C32 --> UP32
-  UP32 --> U16
   C16 --> U16
-  U32 -->|flow ×2↑| U16
   U16 -->|flow| R16
   E16 -->|f0, f1, ctx| R16
+  C32 --> UP32
+  UP32 --> U16
+  U32 -->|flow ×2↑| U16
   R16 -->|flow ×2↑| R8
   E8 -->|f0, f1, ctx| R8
   R8 -->|flow ×2↑| R4
@@ -292,12 +295,12 @@ flowchart TB
   C32 --> U32
   E32 -->|ctx| U32
   E16 -->|f0, f1| C16
-  C32 --> UP32
-  UP32 --> U16
   C16 --> U16
-  U32 -->|flow ×2↑| U16
   U16 -->|flow| R16
   E16 -->|f0, f1, ctx| R16
+  C32 --> UP32
+  UP32 --> U16
+  U32 -->|flow ×2↑| U16
   R16 -->|flow ×2↑| R8
   E8 -->|f0, f1, ctx| R8
   R8 -->|flow ×2↑| R4
@@ -359,12 +362,12 @@ flowchart TB
   C32 --> U32
   E32 -->|ctx| U32
   E16 -->|f0, f1| C16
-  C32 --> UP32
-  UP32 --> U16
   C16 --> U16
-  U32 -->|flow ×2↑| U16
   U16 -->|flow| R16
   E16 -->|f0, f1, ctx| R16
+  C32 --> UP32
+  UP32 --> U16
+  U32 -->|flow ×2↑| U16
   R16 -->|flow ×2↑| R8
   E8 -->|f0, f1, ctx| R8
   R8 -->|flow ×2↑| R4
@@ -427,12 +430,12 @@ flowchart TB
   C32 --> U32
   E32 -->|ctx| U32
   E16 -->|f0, f1| C16
-  C32 --> UP32
-  UP32 --> U16
   C16 --> U16
-  U32 -->|flow ×2↑| U16
   U16 -->|flow| R16
   E16 -->|f0, f1, ctx| R16
+  C32 --> UP32
+  UP32 --> U16
+  U32 -->|flow ×2↑| U16
   R16 -->|flow ×2↑| R8
   E8 -->|f0, f1, ctx| R8
   R8 -->|flow ×2↑| R4
@@ -495,12 +498,12 @@ flowchart TB
   C32 --> U32
   E32 -->|ctx| U32
   E16 -->|f0, f1| C16
-  C32 --> UP32
-  UP32 --> U16
   C16 --> U16
-  U32 -->|flow ×2↑| U16
   U16 -->|flow| R16
   E16 -->|f0, f1, ctx| R16
+  C32 --> UP32
+  UP32 --> U16
+  U32 -->|flow ×2↑| U16
   R16 -->|flow ×2↑| R8
   E8 -->|f0, f1, ctx| R8
   R8 -->|flow ×2↑| R4
@@ -563,12 +566,12 @@ flowchart TB
   C32 --> U32
   E32 -->|ctx| U32
   E16 -->|f0, f1| C16
-  C32 --> UP32
-  UP32 --> U16
   C16 --> U16
-  U32 -->|flow ×2↑| U16
   U16 -->|flow| R16
   E16 -->|f0, f1, ctx| R16
+  C32 --> UP32
+  UP32 --> U16
+  U32 -->|flow ×2↑| U16
   R16 -->|flow ×2↑| R8
   E8 -->|f0, f1, ctx| R8
   R8 -->|flow ×2↑| R4
@@ -631,12 +634,12 @@ flowchart TB
   C32 --> U32
   E32 -->|ctx| U32
   E16 -->|f0, f1| C16
-  C32 --> UP32
-  UP32 --> U16
   C16 --> U16
-  U32 -->|flow ×2↑| U16
   U16 -->|flow| R16
   E16 -->|f0, f1, ctx| R16
+  C32 --> UP32
+  UP32 --> U16
+  U32 -->|flow ×2↑| U16
   R16 -->|flow ×2↑| R8
   E8 -->|f0, f1, ctx| R8
   R8 -->|flow ×2↑| R4
@@ -699,12 +702,12 @@ flowchart TB
   C32 --> U32
   E32 -->|ctx| U32
   E16 -->|f0, f1| C16
-  C32 --> UP32
-  UP32 --> U16
   C16 --> U16
-  U32 -->|flow ×2↑| U16
   U16 -->|flow| R16
   E16 -->|f0, f1, ctx| R16
+  C32 --> UP32
+  UP32 --> U16
+  U32 -->|flow ×2↑| U16
   R16 -->|flow ×2↑| R8
   E8 -->|f0, f1, ctx| R8
   R8 -->|flow ×2↑| R4
@@ -767,12 +770,12 @@ flowchart TB
   C32 --> U32
   E32 -->|ctx| U32
   E16 -->|f0, f1| C16
-  C32 --> UP32
-  UP32 --> U16
   C16 --> U16
-  U32 -->|flow ×2↑| U16
   U16 -->|flow| R16
   E16 -->|f0, f1, ctx| R16
+  C32 --> UP32
+  UP32 --> U16
+  U32 -->|flow ×2↑| U16
   R16 -->|flow ×2↑| R8
   E8 -->|f0, f1, ctx| R8
   R8 -->|flow ×2↑| R4
@@ -836,12 +839,12 @@ flowchart TB
   C32 --> U32
   E32 -->|ctx| U32
   E16 -->|f0, f1| C16
-  C32 --> UP32
-  UP32 --> U16
   C16 --> U16
-  U32 -->|flow ×2↑| U16
   U16 -->|flow| R16
   E16 -->|f0, f1, ctx| R16
+  C32 --> UP32
+  UP32 --> U16
+  U32 -->|flow ×2↑| U16
   R16 -->|flow ×2↑| R8
   E8 -->|f0, f1, ctx| R8
   R8 -->|flow ×2↑| R4
@@ -907,12 +910,12 @@ flowchart TB
   C32 --> U32
   E32 -->|ctx| U32
   E16 -->|f0, f1| C16
-  C32 --> UP32
-  UP32 --> U16
   C16 --> U16
-  U32 -->|flow ×2↑| U16
   U16 -->|flow| R16
   E16 -->|f0, f1, ctx| R16
+  C32 --> UP32
+  UP32 --> U16
+  U32 -->|flow ×2↑| U16
   R16 -->|flow ×2↑| R8
   E8 -->|f0, f1, ctx| R8
   R8 -->|flow ×2↑| R4
@@ -978,12 +981,12 @@ flowchart TB
   C32 --> U32
   E32 -->|ctx| U32
   E16 -->|f0, f1| C16
-  C32 --> UP32
-  UP32 --> U16
   C16 --> U16
-  U32 -->|flow ×2↑| U16
   U16 -->|flow| R16
   E16 -->|f0, f1, ctx| R16
+  C32 --> UP32
+  UP32 --> U16
+  U32 -->|flow ×2↑| U16
   R16 -->|flow ×2↑| R8
   E8 -->|f0, f1, ctx| R8
   R8 -->|flow ×2↑| R4
@@ -1049,12 +1052,12 @@ flowchart TB
   C32 --> U32
   E32 -->|ctx| U32
   E16 -->|f0, f1| C16
-  C32 --> UP32
-  UP32 --> U16
   C16 --> U16
-  U32 -->|flow ×2↑| U16
   U16 -->|flow| R16
   E16 -->|f0, f1, ctx| R16
+  C32 --> UP32
+  UP32 --> U16
+  U32 -->|flow ×2↑| U16
   R16 -->|flow ×2↑| R8
   E8 -->|f0, f1, ctx| R8
   R8 -->|flow ×2↑| R4
@@ -1119,12 +1122,12 @@ flowchart TB
   C32 --> U32
   E32 -->|ctx| U32
   E16 -->|f0, f1| C16
-  C32 --> UP32
-  UP32 --> U16
   C16 --> U16
-  U32 -->|flow ×2↑| U16
   U16 -->|flow| R16
   E16 -->|f0, f1, ctx| R16
+  C32 --> UP32
+  UP32 --> U16
+  U32 -->|flow ×2↑| U16
   R16 -->|flow ×2↑| R8
   E8 -->|f0, f1, ctx| R8
   R8 -->|flow ×2↑| R4
@@ -1191,12 +1194,12 @@ flowchart TB
   C32 --> U32
   E32 -->|ctx| U32
   E16 -->|f0, f1| C16
-  C32 --> UP32
-  UP32 --> U16
   C16 --> U16
-  U32 -->|flow ×2↑| U16
   U16 -->|flow| R16
   E16 -->|f0, f1, ctx| R16
+  C32 --> UP32
+  UP32 --> U16
+  U32 -->|flow ×2↑| U16
   E8 -->|f0, f1| M8
   M8 --> R8
   M8 --> SA8
@@ -1269,12 +1272,12 @@ flowchart TB
   C32 --> U32
   E32 -->|ctx| U32
   E16 -->|f0, f1| C16
-  C32 --> UP32
-  UP32 --> U16
   C16 --> U16
-  U32 -->|flow ×2↑| U16
   U16 -->|flow| R16
   E16 -->|f0, f1, ctx| R16
+  C32 --> UP32
+  UP32 --> U16
+  U32 -->|flow ×2↑| U16
   E8 -->|f0, f1| M8
   M8 --> R8
   M8 --> SA8
@@ -1348,12 +1351,12 @@ flowchart TB
   C32 --> U32
   E32 -->|ctx| U32
   E16 -->|f0, f1| C16
-  C32 --> UP32
-  UP32 --> U16
   C16 --> U16
-  U32 -->|flow ×2↑| U16
   U16 -->|flow| R16
   E16 -->|f0, f1, ctx| R16
+  C32 --> UP32
+  UP32 --> U16
+  U32 -->|flow ×2↑| U16
   E8 -->|f0, f1| M8
   M8 --> R8
   M8 --> SA8
@@ -1424,12 +1427,12 @@ flowchart TB
   C32 --> U32
   E32 -->|ctx| U32
   E16 -->|f0, f1| C16
-  C32 --> UP32
-  UP32 --> U16
   C16 --> U16
-  U32 -->|flow ×2↑| U16
   U16 -->|flow| R16
   E16 -->|f0, f1, ctx| R16
+  C32 --> UP32
+  UP32 --> U16
+  U32 -->|flow ×2↑| U16
   E8 -->|f0, f1| M8
   M8 --> R8
   R16 -->|flow ×2↑| R8
@@ -1498,12 +1501,12 @@ flowchart TB
   C32 --> U32
   E32 -->|ctx| U32
   E16 -->|f0, f1| C16
-  C32 --> UP32
-  UP32 --> U16
   C16 --> U16
-  U32 -->|flow ×2↑| U16
   U16 -->|flow| R16
   E16 -->|f0, f1, ctx| R16
+  C32 --> UP32
+  UP32 --> U16
+  U32 -->|flow ×2↑| U16
   E8 -->|f1| K8
   R16 -->|flow, ctx| K8
   K8 -->|f1 зміщений| R8
@@ -1575,12 +1578,12 @@ flowchart TB
   C32 --> U32
   E32 -->|ctx| U32
   E16 -->|f0, f1| C16
-  C32 --> UP32
-  UP32 --> U16
   C16 --> U16
-  U32 -->|flow ×2↑| U16
   U16 -->|flow| R16
   E16 -->|f0, f1, ctx| R16
+  C32 --> UP32
+  UP32 --> U16
+  U32 -->|flow ×2↑| U16
   E8 -->|f0, f1| M8
   M8 --> R8
   M8 --> SA8
@@ -1654,12 +1657,12 @@ flowchart TB
   C32 --> U32
   E32 -->|ctx| U32
   E16 -->|f0, f1| C16
-  C32 --> UP32
-  UP32 --> U16
   C16 --> U16
-  U32 -->|flow ×2↑| U16
   U16 -->|flow| R16
   E16 -->|f0, f1, ctx| R16
+  C32 --> UP32
+  UP32 --> U16
+  U32 -->|flow ×2↑| U16
   E8 -->|f0, f1| M8
   M8 --> R8
   R16 -->|flow ×2↑| R8
@@ -1728,12 +1731,12 @@ flowchart TB
   C32 --> U32
   E32 -->|ctx| U32
   E16 -->|f0, f1| C16
-  C32 --> UP32
-  UP32 --> U16
   C16 --> U16
-  U32 -->|flow ×2↑| U16
   U16 -->|flow| R16
   E16 -->|f0, f1, ctx| R16
+  C32 --> UP32
+  UP32 --> U16
+  U32 -->|flow ×2↑| U16
   E8 -->|f0, f1| M8
   M8 --> R8
   R16 -->|flow ×2↑| R8
@@ -1801,12 +1804,12 @@ flowchart TB
   C32 --> U32
   E32 -->|ctx| U32
   E16 -->|f0, f1| C16
-  C32 --> UP32
-  UP32 --> U16
   C16 --> U16
-  U32 -->|flow ×2↑| U16
   U16 -->|flow| R16
   E16 -->|f0, f1, ctx| R16
+  C32 --> UP32
+  UP32 --> U16
+  U32 -->|flow ×2↑| U16
   E8 -->|f0, f1| M8
   M8 --> R8
   M8 --> SA8
@@ -1822,3 +1825,177 @@ flowchart TB
   classDef changed fill:#ffe0b2,stroke:#e65100,stroke-width:2px,color:#000
   class M8,SA8,R8 changed
 ```
+
+## S10_no_s32
+
+Зміни відносно B0: `use_s32: False`. Параметрів: 0.398 M. Час на MaixCAM: INT8 28.85 мс, mixed 39.93 мс.
+
+```mermaid
+flowchart TB
+    I0["img0 3×256×320"]
+    I1["img1 3×256×320"]
+  subgraph G_enc["Енкодер (спільні ваги для обох кадрів) · LeakyReLU"]
+    direction TB
+    E4["DW s2 → DW s2 → DW<br/>s4: 48×64×80<br/>+ поз. кодування (y, x), 1×1"]
+    E8["DW s2 → DW → DW + SE<br/>s8: 96×32×40<br/>+ поз. кодування (y, x), 1×1"]
+    E16["DW s2 ⊕α maxpool + SE<br/>s16: 96×16×20<br/>+ поз. кодування (y, x), 1×1"]
+  end
+  subgraph G_s16["Рівень 1/16"]
+    direction TB
+    C16["локальна кореляція 2D r=6<br/>l2norm, 169 зсувів"]
+    U16["CoarseUpdate ×2<br/>вхід 267 → 128 → Δflow<br/>старт з нульового потоку"]
+    R16["refine_s16<br/>вхід 290 → 128 → Δflow"]
+  end
+  subgraph G_s8["Рівень 1/8"]
+    direction TB
+    R8["refine_s8<br/>вхід 290 → 128 → Δflow"]
+  end
+  subgraph G_s4["Рівень 1/4"]
+    direction TB
+    R4["refine_s4<br/>вхід 194 → 64 → Δflow"]
+  end
+  subgraph G_full["Повна роздільність"]
+    direction TB
+    UPF["bilinear ×4<br/>2×256×320"]
+    FR["full_refine на 256×320<br/>DW + dilated DW + 1×1, вхід flow + img0"]
+  end
+    OUT["потік 2×256×320"]
+  I0 --> E4
+  I1 --> E4
+  E4 --> E8
+  E8 --> E16
+  E16 -->|f0, f1| C16
+  C16 --> U16
+  U16 -->|flow| R16
+  E16 -->|f0, f1, ctx| R16
+  R16 -->|flow ×2↑| R8
+  E8 -->|f0, f1, ctx| R8
+  R8 -->|flow ×2↑| R4
+  E4 -->|f0, f1, ctx| R4
+  R4 -->|flow| UPF
+  UPF --> FR
+  I0 -->|img0| FR
+  FR --> OUT
+  classDef changed fill:#ffe0b2,stroke:#e65100,stroke-width:2px,color:#000
+  class U16 changed
+```
+
+Прибрано відносно B0: DW s2 ⊕α maxpool + SE, s32: 96×8×10, + поз. кодування (y, x), 1×1; глобальна кореляція dual-1D, l2norm, MatMul → 18 кан.; CoarseUpdate ×2, вхід 116 → 128 → Δflow; bilinear ↑ cost32, 18 кан..
+
+## C3n_no_s32
+
+Зміни відносно B0: `corr16: 1d`, `full_refine: pixelshuffle`, `use_pos_enc: False`, `act: relu`, `use_s32: False`. Параметрів: 0.362 M. Час на MaixCAM: INT8 10.89 мс, mixed 11.35 мс.
+
+Активація ReLU в усіх блоках (у B0 — LeakyReLU); вузли через це не підсвічено.
+
+```mermaid
+flowchart TB
+    I0["img0 3×256×320"]
+    I1["img1 3×256×320"]
+  subgraph G_enc["Енкодер (спільні ваги для обох кадрів) · ReLU"]
+    direction TB
+    E4["DW s2 → DW s2 → DW<br/>s4: 48×64×80"]
+    E8["DW s2 → DW → DW + SE<br/>s8: 96×32×40"]
+    E16["DW s2 ⊕α maxpool + SE<br/>s16: 96×16×20"]
+  end
+  subgraph G_s16["Рівень 1/16"]
+    direction TB
+    C16["локальна кореляція 1D r=6<br/>l2norm, 26 зсувів (гориз. + верт.)"]
+    U16["CoarseUpdate ×2<br/>вхід 124 → 128 → Δflow<br/>старт з нульового потоку"]
+    R16["refine_s16<br/>вхід 290 → 128 → Δflow"]
+  end
+  subgraph G_s8["Рівень 1/8"]
+    direction TB
+    R8["refine_s8<br/>вхід 290 → 128 → Δflow"]
+  end
+  subgraph G_s4["Рівень 1/4"]
+    direction TB
+    R4["refine_s4<br/>вхід 194 → 64 → Δflow"]
+  end
+  subgraph G_full["Повна роздільність"]
+    direction TB
+    UPF["bilinear ×4<br/>2×256×320"]
+    FR["up_head на s4: DW → 1×1 → 32 кан.<br/>PixelShuffle ×4 → Δflow"]
+  end
+    OUT["потік 2×256×320"]
+  I0 --> E4
+  I1 --> E4
+  E4 --> E8
+  E8 --> E16
+  E16 -->|f0, f1| C16
+  C16 --> U16
+  U16 -->|flow| R16
+  E16 -->|f0, f1, ctx| R16
+  R16 -->|flow ×2↑| R8
+  E8 -->|f0, f1, ctx| R8
+  R8 -->|flow ×2↑| R4
+  E4 -->|f0, f1, ctx| R4
+  R4 -->|flow| UPF
+  R4 -->|flow| FR
+  E4 -->|f0| FR
+  UPF --> OUT
+  FR -->|+ α·Δ| OUT
+  classDef changed fill:#ffe0b2,stroke:#e65100,stroke-width:2px,color:#000
+  class E4,E8,E16,C16,U16,FR changed
+```
+
+Прибрано відносно B0: DW s2 ⊕α maxpool + SE, s32: 96×8×10, + поз. кодування (y, x), 1×1; глобальна кореляція dual-1D, l2norm, MatMul → 18 кан.; CoarseUpdate ×2, вхід 116 → 128 → Δflow; bilinear ↑ cost32, 18 кан..
+
+## C5n_no_s32
+
+Зміни відносно B0: `r16: 4`, `full_refine: pixelshuffle`, `use_pos_enc: False`, `act: relu`, `use_s32: False`. Параметрів: 0.369 M. Час на MaixCAM: INT8 14.56 мс, mixed 15.02 мс.
+
+Активація ReLU в усіх блоках (у B0 — LeakyReLU); вузли через це не підсвічено.
+
+```mermaid
+flowchart TB
+    I0["img0 3×256×320"]
+    I1["img1 3×256×320"]
+  subgraph G_enc["Енкодер (спільні ваги для обох кадрів) · ReLU"]
+    direction TB
+    E4["DW s2 → DW s2 → DW<br/>s4: 48×64×80"]
+    E8["DW s2 → DW → DW + SE<br/>s8: 96×32×40"]
+    E16["DW s2 ⊕α maxpool + SE<br/>s16: 96×16×20"]
+  end
+  subgraph G_s16["Рівень 1/16"]
+    direction TB
+    C16["локальна кореляція 2D r=4<br/>l2norm, 81 зсувів"]
+    U16["CoarseUpdate ×2<br/>вхід 179 → 128 → Δflow<br/>старт з нульового потоку"]
+    R16["refine_s16<br/>вхід 290 → 128 → Δflow"]
+  end
+  subgraph G_s8["Рівень 1/8"]
+    direction TB
+    R8["refine_s8<br/>вхід 290 → 128 → Δflow"]
+  end
+  subgraph G_s4["Рівень 1/4"]
+    direction TB
+    R4["refine_s4<br/>вхід 194 → 64 → Δflow"]
+  end
+  subgraph G_full["Повна роздільність"]
+    direction TB
+    UPF["bilinear ×4<br/>2×256×320"]
+    FR["up_head на s4: DW → 1×1 → 32 кан.<br/>PixelShuffle ×4 → Δflow"]
+  end
+    OUT["потік 2×256×320"]
+  I0 --> E4
+  I1 --> E4
+  E4 --> E8
+  E8 --> E16
+  E16 -->|f0, f1| C16
+  C16 --> U16
+  U16 -->|flow| R16
+  E16 -->|f0, f1, ctx| R16
+  R16 -->|flow ×2↑| R8
+  E8 -->|f0, f1, ctx| R8
+  R8 -->|flow ×2↑| R4
+  E4 -->|f0, f1, ctx| R4
+  R4 -->|flow| UPF
+  R4 -->|flow| FR
+  E4 -->|f0| FR
+  UPF --> OUT
+  FR -->|+ α·Δ| OUT
+  classDef changed fill:#ffe0b2,stroke:#e65100,stroke-width:2px,color:#000
+  class E4,E8,E16,C16,U16,FR changed
+```
+
+Прибрано відносно B0: DW s2 ⊕α maxpool + SE, s32: 96×8×10, + поз. кодування (y, x), 1×1; глобальна кореляція dual-1D, l2norm, MatMul → 18 кан.; CoarseUpdate ×2, вхід 116 → 128 → Δflow; bilinear ↑ cost32, 18 кан..
