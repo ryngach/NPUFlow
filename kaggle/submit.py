@@ -41,7 +41,7 @@ def main():
             "task": task.id, "force": True,
             "script": {**task.data.script.to_dict(), "branch": args.branch, "version_num": head}})
         print(f"code: {args.branch} @ {head[:7]}")
-        task.set_parameter("Args/max_hours", args.max_hours or "")   # the limit applies to this submission only
+        task.set_parameter("Args/max_hours", args.max_hours)   # the limit applies to this submission only
     else:
         if not args.name:
             ap.error("--name is required for a new run")
@@ -49,7 +49,7 @@ def main():
                            script="train.py", add_task_init_call=False)
         task.set_parameters({"Args/config": args.config, "Args/name": args.name, "Args/variant": args.variant,
                              "Args/set": repr(args.set), "Args/project": args.project,
-                             "Args/max_hours": args.max_hours or ""})
+                             "Args/max_hours": args.max_hours})
         if args.variant:
             task.add_tags([args.variant])
     Task.enqueue(task, queue_name=args.queue)
