@@ -29,9 +29,9 @@ import bf16_blocks  # noqa: E402
 import eqexp  # noqa: E402
 import speed  # noqa: E402
 
-TABLES = ROOT / "bench" / "work" / "_calib"          # <method>/m_cali_table from calib_sweep.py
-SRC = ROOT / "bench" / "work" / "_eqexp" / "base"    # m.mlir + weights of the trained checkpoint
-WORK = ROOT / "bench" / "work" / "_hybrid"
+TABLES = eqexp.QWORK / "_calib"          # <method>/m_cali_table from calib_sweep.py
+SRC = eqexp.WORK / "base"                # m.mlir + weights of the trained checkpoint
+WORK = eqexp.QWORK / "_hybrid"
 RESULTS = ROOT / "results" / "hybrid_calib.jsonl"
 M = speed.MODEL_NAME
 BASE_METHOD = "kl"
@@ -119,7 +119,7 @@ def main():
     model = eqexp.load_model(args.checkpoint)
     commit, dirty = speed.git_state()
     meta = {"tag": args.tag, "checkpoint": args.checkpoint, "git_commit": commit, "git_dirty": dirty,
-            "docker_image": speed.DOCKER_IMAGE, "base_method": BASE_METHOD}
+            "docker_image": speed.DOCKER_IMAGE, "base_method": BASE_METHOD, "run": eqexp.RUN, "arch": eqexp.VARIANT}
 
     if args.stage == "select":
         sel = save_set(full, sel_idx, WORK / "set_select.npz")

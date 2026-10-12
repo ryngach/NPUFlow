@@ -34,8 +34,14 @@ from utils import read_flo, resize_flow, resize_img, resize_mask_nearest  # noqa
 # Threshold method for run_calibration.py. The first experiments (eq1, bis1) used
 # use_percentile9999; set EFN_CALI_METHOD=use_kl for the method chosen by the sweep.
 CALI_METHOD = os.environ.get("EFN_CALI_METHOD", "use_percentile9999")
-WORK = ROOT / "bench" / "work" / ("_eqexp" if CALI_METHOD == "use_percentile9999"
-                                  else "_eqexp_" + CALI_METHOD.replace("use_", ""))
+# Model under study. Unset: the December checkpoint (default architecture, work dirs of 2026-10-01/02).
+# EFN_RUN names a trained run (its work dirs go to bench/work/_q/<run>/), EFN_VARIANT its
+# architecture from bench/variants.yaml.
+RUN = os.environ.get("EFN_RUN", "")
+VARIANT = os.environ.get("EFN_VARIANT", "")
+QWORK = ROOT / "bench" / "work" / ("_q/" + RUN if RUN else "")   # parent of all per-model work dirs
+WORK = QWORK / ("_eqexp" if CALI_METHOD == "use_percentile9999"
+                else "_eqexp_" + CALI_METHOD.replace("use_", ""))
 EVALSET = ROOT / "bench" / "work" / "_eqexp" / "evalset.npz"   # shared by all calibration methods
 CALIB = ROOT / "bench" / "work" / "_ranges" / "calib"   # 92 adjacent Sintel pairs
 SINTEL = ROOT / "datasets" / "MPI-Sintel-complete" / "training"
@@ -116,8 +122,16 @@ def build_evalset(path: Path, with_kitti: bool):
 
 # --------------------------------------------------------------------- model
 
+def model_config() -> ModelConfig:
+    if not VARIANT:
+        return ModelConfig()
+    import yaml
+    variants = yaml.safe_load((ROOT / "bench" / "variants.yaml").read_text())
+    return ModelConfig(**(variants[VARIANT] or {}))
+
+
 def load_model(checkpoint: str) -> EdgeFlowNet:
-    model = EdgeFlowNet(ModelConfig()).eval()
+    model = EdgeFlowNet(model_config()).eval()
     state = torch.load(checkpoint, map_location="cpu")
     if isinstance(state, dict) and "state_dict" in state:
         state = state["state_dict"]
@@ -194,10 +208,32 @@ run_calibration.py {speed.MODEL_NAME}.mlir --data_list /workspace/{rel_calib}/pa
 """, "transform.log")
 
 
+def transform_base(checkpoint: str) -> Path:
+    """WORK/base/m.mlir (top MLIR, no calibration) of the model under study; built once."""
+    base = WORK / "base"
+    if not (base / f"{speed.MODEL_NAME}.mlir").exists():
+        base.mkdir(parents=True, exist_ok=True)
+        export_onnx(load_model(checkpoint), base / f"{speed.MODEL_NAME}.onnx")
+        scale = 1.0 / 255.0
+        speed.docker_run(base, f"""
+model_transform.py --model_name {speed.MODEL_NAME} --model_def {speed.MODEL_NAME}.onnx \\
+  --input_shapes [[1,3,{SIZE[0]},{SIZE[1]}],[1,3,{SIZE[0]},{SIZE[1]}]] --channel_format nchw \\
+  --pixel_format rgb --keep_aspect_ratio --mean 0,0,0 --scale {scale},{scale},{scale} \\
+  --mlir {speed.MODEL_NAME}.mlir
+""", "transform.log")
+    return base
+
+
 def emulate(cvimodel: Path, evalset_path: Path, out_path: Path):
-    rel = lambda p: Path(p).resolve().relative_to(ROOT)   # noqa: E731
+    # paths as seen from /workspace; symlinked folders are mounted at their own absolute path
+    # (as in speed.docker_run), so absolute resolved paths work for them
+    def rel(p):
+        p = Path(p).resolve()
+        return p.relative_to(ROOT) if p.is_relative_to(ROOT) else p
+    links = sorted({str(p.resolve()) for p in (speed.WORK, speed.CALIB, ROOT / "datasets") if p.is_symlink()})
+    mounts = [arg for target in links for arg in ("-v", f"{target}:{target}")]
     cmd = ["docker", "run", "--rm", "--user", f"{os.getuid()}:{os.getgid()}", "-e", "HOME=/tmp",
-           "-v", f"{ROOT}:/workspace", "-w", "/workspace", speed.DOCKER_IMAGE, "bash", "-c",
+           "-v", f"{ROOT}:/workspace", *mounts, "-w", "/workspace", speed.DOCKER_IMAGE, "bash", "-c",
            "P=/usr/local/lib/python3.10/dist-packages/tpu_mlir; "
            "export PYTHONPATH=$P/python LD_LIBRARY_PATH=$P/lib; "
            f"python3 bench/emu_eval.py {rel(cvimodel)} {rel(evalset_path)} {rel(out_path)}"]

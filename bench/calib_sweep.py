@@ -31,7 +31,7 @@ import speed  # noqa: E402
 
 BASE = eqexp.WORK / "base"          # holds m.mlir of the trained checkpoint
 TRANSFORM = speed.DOCKER_IMAGE != "edgeflownet-tpumlir:1.25"   # BASE/m.mlir was made by 1.25
-WORK = ROOT / "bench" / "work" / ("_calib_" + speed.DOCKER_IMAGE.split(":")[-1] if TRANSFORM else "_calib")
+WORK = eqexp.QWORK / ("_calib_" + speed.DOCKER_IMAGE.split(":")[-1] if TRANSFORM else "_calib")
 RESULTS = ROOT / "results" / "calib_sweep.jsonl"
 M = speed.MODEL_NAME
 
@@ -48,7 +48,7 @@ RECIPES = {
     "p9999_we": "--cali_method use_percentile9999 --we",  # + weight equalization
     "p9999_bc": "--cali_method use_percentile9999 --bc --bc_inference_num 30",   # + bias correction
     "p9999_we_bc": "--cali_method use_percentile9999 --we --bc --bc_inference_num 30",
-    "search_threshold": "--search search_threshold --inference_num 10",
+    "search_threshold": f"--search search_threshold --inference_num 10 --quantize_table {M}_search_qtable",
     "kl_bc": "--cali_method use_kl --bc --bc_inference_num 30",         # best method + bias correction
 }
 
@@ -104,6 +104,8 @@ def main():
     ap.add_argument("--tag", default="cal1")
     args = ap.parse_args()
 
+    if eqexp.RUN:
+        eqexp.transform_base(args.checkpoint)
     full = np.load(eqexp.EVALSET)
     idx = bf16_blocks.subset(full)
     sub = {k: full[k][idx] for k in full.files}
@@ -121,6 +123,7 @@ def main():
     def record(name, payload):
         row = {"time": datetime.datetime.now().isoformat(timespec="seconds"), "tag": args.tag,
                "recipe": name, "args": RECIPES[name], "checkpoint": args.checkpoint,
+               "run": eqexp.RUN, "arch": eqexp.VARIANT,
                "git_commit": commit, "git_dirty": dirty, "docker_image": speed.DOCKER_IMAGE,
                "eval_pairs": int(len(idx)), "calib_pairs": num_pairs, **payload}
         RESULTS.parent.mkdir(parents=True, exist_ok=True)

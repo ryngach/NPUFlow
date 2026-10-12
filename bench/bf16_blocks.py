@@ -41,12 +41,12 @@ BLOCKS = {
     "refine_s16": r"^/refine_s16/",
     "refine_s8": r"^/(refine_s8|ctx8)/",
     "refine_s4": r"^/(refine_s4|ctx4)/",
-    "full_refine": r"^(/full_refine/|flow_full)",
+    "full_refine": r"^(/full_refine/|/up_head/|flow_full)",   # up_head: the PixelShuffle variant
     "flow_path": r"^/[A-Za-z]+(_\d+)?_output_0_[A-Za-z]+$",  # top-level Add/Mul/Resize/Concat on flow
     # flow state end to end: the top-level flow ops plus the convs that emit flow increments
     "flow_heads": r"^/[A-Za-z]+(_\d+)?_output_0_[A-Za-z]+$|^/(update32|update16|refine_s16|refine_s8|refine_s4)/head(_\d+)?/",
     "flow_heads_full": r"^/[A-Za-z]+(_\d+)?_output_0_[A-Za-z]+$|^/(update32|update16|refine_s16|refine_s8|refine_s4)/head(_\d+)?/"
-                       r"|^/full_refine/|^flow_full",
+                       r"|^/full_refine/|^/up_head/|^flow_full",
 }
 
 
