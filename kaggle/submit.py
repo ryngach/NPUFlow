@@ -9,6 +9,7 @@ The agent clones the repository at the given branch, so push your commits first.
 """
 import argparse
 import subprocess
+import sys
 
 from clearml import Task
 
@@ -41,10 +42,16 @@ def main():
             "task": task.id, "force": True,
             "script": {**task.data.script.to_dict(), "branch": args.branch, "version_num": head}})
         print(f"code: {args.branch} @ {head[:7]}")
-        # the limit applies to this submission only; force, since a stopped or failed task is read-only
-        task.session.send_request("tasks", "edit_hyper_params", json={
-            "task": task.id, "force": True,
-            "hyperparams": [{"section": "Args", "name": "max_hours", "value": str(args.max_hours)}]})
+        # the limit applies to this submission only; a stopped or failed task is read-only except
+        # through a forced tasks.edit (edit_hyper_params refuses it)
+        hyperparams = {section: {k: v.to_dict() for k, v in params.items()}
+                       for section, params in task.data.hyperparams.items()}
+        hyperparams.setdefault("Args", {})["max_hours"] = {"section": "Args", "name": "max_hours",
+                                                          "value": str(args.max_hours)}
+        reply = task.session.send_request("tasks", "edit", json={"task": task.id, "force": True,
+                                                                 "hyperparams": hyperparams})
+        if reply.status_code != 200:
+            sys.exit(f"cannot set max_hours: {reply.json().get('meta', {}).get('result_msg')}")
     else:
         if not args.name:
             ap.error("--name is required for a new run")
