@@ -491,3 +491,16 @@ C3 — B0 з одновимірною кореляцією на s16, PixelShuffl
   замало. Далі: (1) база гібриду — найкращий метод зі свіпу, а не KL; (2) розширити пошук (множник порогу
   на блок, BF16 для чутливих блоків з ціною в мс); (3) бісекція BF16 на C3, щоб знайти, де лишається
   втрата; (4) полагодити `search_threshold` як базу порівняння.
+
+## 2026-10-14. Наступні прогони: C3n на Things, C5n на Chairs
+- **Мета:** (1) C3n-things — другий етап для найкращого кандидата: чи покращує FlyingThings3D великі рухи
+  (Things-кропи мають 14,4 % пікселів > 40 px проти 2,3 % у Chairs); (2) C5n-chairs — двовимірна
+  кореляція r=4 без s32 проти одновимірної r=6 у C3n (14,6 проти 10,9 мс INT8).
+- **Що зроблено:** `python kaggle/submit.py --name C3n-things --config configs/things.yaml --variant
+  C3n_no_s32 --set init=clearml:a55c4c81b89b4a2f892e66d7bbcceead/chairs_ema_best` → задача
+  `a952ad7a2ced403cb6f016adc01aaa07`; `python kaggle/submit.py --name C5n-chairs --config
+  configs/chairs.yaml --variant C5n_no_s32` → задача `e71ff2889ecc4f2d98c6fdbd4478ac7d`. Обидві в черзі
+  `kaggle`, без ліміту часу; разом ~12 год, тож друга, ймовірно, впреться в ліміт сесії (11,3 год), збереже
+  стан і довчиться після `submit.py --resume`.
+- **Результат:** очікується.
+- **Висновок:** —
