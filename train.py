@@ -38,6 +38,12 @@ from model import EdgeFlowNet, ModelConfig  # noqa: E402
 
 DEFAULTS = {
     "batch_size": 64, "num_workers": 8, "amp": True, "ema_decay": 0.9995, "warmup_steps": 125,
+    # ground-truth motion at or above this many pixels (training scale) is left out of the loss, like
+    # MAX_FLOW in RAFT (400 px at 960 wide = 190 px here): rare extreme FlyingThings3D motions dominate
+    # the loss; 0 = keep all
+    "max_flow": 250.0,
+    # stop when the loss stays non-finite this many steps in a row (the weights are then broken)
+    "max_bad_steps": 50,
     "grad_clip": 1.0, "weight_decay": 1e-4, "log_interval": 100, "val_interval": 1000, "seed": 1337,
     "aug": "raft",           # "raft" | "december" (the recipe of the December training)
     "data_parallel": False,  # nn.DataParallel over all GPUs; on Kaggle (4 CPU cores, 2x T4) it is 5x SLOWER
@@ -345,6 +351,10 @@ def main():
               f"val {[(n, len(d)) for n, d in val_sets]}, steps {step}/{steps}")
 
         def save_state():
+            broken = [n for n, v in unwrap(model).state_dict().items()
+                      if v.is_floating_point() and not torch.isfinite(v).all()]
+            if broken:   # never overwrite the last good state with a broken one
+                raise RuntimeError(f"non-finite weights at step {step} ({len(broken)} tensors, e.g. {broken[:3]})")
             torch.save({"stage": stage_idx, "step": step, "best": best, "model": unwrap(model).state_dict(),
                         "optimizer": optimizer.state_dict(), "scaler": scaler.state_dict() if use_amp else None,
                         "ema": ema.shadow, "rng": rng_state(), "history": history, "config": cfg}, state_path)
@@ -383,6 +393,7 @@ def main():
 
         model.train()
         t_log, n_log = time.time(), 0
+        bad_steps = 0                  # consecutive batches with a non-finite loss
         t_data = t_compute = 0.0       # seconds spent waiting for batches / computing, since the last log line
         t_mark = time.time()
         while step < steps and not stopped_early:
@@ -393,6 +404,8 @@ def main():
                 flow_gt, valid = flow_gt.to(device, non_blocking=True), valid.to(device, non_blocking=True)
                 if cfg["aug"] == "raft":
                     img0, img1 = color_jitter(img0, img1)
+                if cfg["max_flow"]:
+                    valid = valid * (flow_gt.norm(dim=1, keepdim=True) < cfg["max_flow"])
                 lr = lr_at(step, steps, lr_max, lr_min, cfg["warmup_steps"])
                 for g in optimizer.param_groups:
                     g["lr"] = lr * g["scale"]
@@ -400,6 +413,16 @@ def main():
                     preds, _ = model(img0, img1)
                     loss, stats = multiscale_loss_masked(preds, flow_gt, img0, valid_mask=valid)
                 optimizer.zero_grad(set_to_none=True)
+                if not torch.isfinite(loss):
+                    # skip the batch; GradScaler would skip the update too, but BatchNorm statistics and
+                    # the EMA would still take it in
+                    bad_steps += 1
+                    if bad_steps >= cfg["max_bad_steps"]:
+                        raise RuntimeError(f"loss non-finite for {bad_steps} steps in a row at step {step}; "
+                                           "the last saved state is from before that")
+                    t_mark = time.time()
+                    continue
+                bad_steps = 0
                 scaler.scale(loss).backward()
                 scaler.unscale_(optimizer)
                 if cfg["grad_clip"]:
