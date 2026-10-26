@@ -555,3 +555,5 @@ C3 — B0 з одновимірною кореляцією на s16, PixelShuffl
 - **Висновок:** тема покриває обидва напрями роботи: проєктування архітектури під NPU (варіанти B0/C3n/C5n,
   вимірювання швидкості на MaixCAM) і оптимізацію (квантування INT8, вибір методу калібрування за EPE,
   змішана точність) — це перша стаття.
+- **Англійська версія:** «Methods and Tools for Hardware-Aware Design and Optimization of Neural Network
+  Software for Optical Flow Estimation on Edge Devices».
